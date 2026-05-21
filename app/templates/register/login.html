@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Ingresar a cuenta{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-4"> <div class="card shadow border-0">
+            <div class="card-body p-4">
+                <h1 class="text-center h3 mb-4">Ingresar cuenta</h1>
+                
+                <form method="post">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Número de empleado</label>
+                        <input type="text" name="employee_id" class="form-control" required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Contraseña</label>
+                        <input type="password" name="password" id="password" class="form-control" placeholder="••••••••" required>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Entrar</button>
+                        <a href="{{ url_for('base.home') }}" class="btn btn-link text-muted">Salir</a>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer text-center py-3 bg-light">
+                <small>¿No tienes cuenta? <a href="{{ url_for('auth.signup') }}" class="text-decoration-none">Regístrate aquí</a></small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

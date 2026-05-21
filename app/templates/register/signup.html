@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block title %}Registrar cuenta{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <h1 class="h3 mb-4 text-center">Crear cuenta</h1>
+
+                <form method="post">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Número de empleado</label>
+                            <input type="text" name="employee_id" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mt-3 mt-md-0">
+                            <label class="form-label fw-bold">Nombre</label>
+                            <input type="text" name="first_name" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold">Apellidos</label>
+                            <input type="text" name="last_name" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Contraseña</label>
+                            <input type="password" name="password" id="password" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mt-3 mt-md-0">
+                            <label class="form-label fw-bold">Confirmar contraseña</label>
+                            <input type="password" name="password_confirmation" id="password_confirmation" class="form-control" required>
+                            <div id="message" class="form-text mt-1"></div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Crear cuenta</button>
+                        <a href="{{ url_for('auth.login') }}" class="btn btn-outline-secondary">Regresar a ingresar cuenta</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block scripts %}
+    <script src="{{ url_for('static', filename='user_js/SignupFormDataValidation.js') }}"></script>
+{% endblock %}
