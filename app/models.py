@@ -3,14 +3,14 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from flask_login import UserMixin
 from datetime import datetime, timezone
 from werkzeug.security import generate_password_hash, check_password_hash
-from .extensions import db, login_manager
+from app.extensions import db, #login_manager
 
 class Users(UserMixin, db.Model):
     __tablename__ = 'users'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     employee_id: Mapped[int] = mapped_column(Integer, unique=True, nullable=False)
-    password: Mapped[str] = mapped_column(String(256), nullable=False)
+    #password: Mapped[str] = mapped_column(String(256), nullable=False)
     first_name: Mapped[str] = mapped_column(String(16), nullable=False)
     last_name: Mapped[str] = mapped_column(String(30), nullable=False)
     is_staff: Mapped[bool] = mapped_column(Boolean, default=False, nullable=True)
@@ -20,6 +20,7 @@ class Users(UserMixin, db.Model):
     def __repr__(self):
         return f'<User {self.first_name} {self.last_name}>'
     
+    '''
     # Helper method to set the password
     def set_password(self, password):
         self.password = generate_password_hash(password)
@@ -27,10 +28,12 @@ class Users(UserMixin, db.Model):
     # Helper method to check the password
     def check_password(self, password):
         return check_password_hash(self.password, password)
-    
+    '''
+'''  
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(Users, int(user_id))
+'''
 
 class Machines(db.Model):
     __tablename__ = 'machines'

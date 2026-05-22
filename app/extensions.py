@@ -1,7 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import MetaData # Just used to configure Alembic with SQLite
-from flask_login import LoginManager
+#from flask_login import LoginManager
 
 # Just used to configure Alembic with SQLite
 convention = {
@@ -19,4 +19,4 @@ class Base(DeclarativeBase):
 db = SQLAlchemy(Base)
 
 # Create login manager instance
-login_manager = LoginManager()
+#login_manager = LoginManager()
