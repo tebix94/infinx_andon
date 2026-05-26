@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Gestor de órdenes{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <script src="{{ url_for('static', filename='js/chart.umd.js') }}"></script>
 
     <style>
         @keyframes pulse-blink {
@@ -30,7 +31,7 @@
             <div class="collapse navbar-collapse" id="navbarNav">
 
                 <ul class="navbar-nav me-auto">
-                    <li class="nav-item"><a class="nav-link" href="#">📊Métricos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('base.metrics') }}">📊Métricos</a></li>
                     
                     <!-- APARTADO ÓRDENES DE TRABAJO CON GLOBO INDICADOR -->
                     <li class="nav-item">

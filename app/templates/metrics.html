@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Métricos de línea | Infinx{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 mt-4">
+    
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h1 class="h3 fw-bold text-dark mb-1">Métricos de Rendimiento</h1>
+            <p class="text-muted small mb-0">Análisis operativo y tiempos de interrupción de línea.</p>
+        </div>
+        <div class="btn-group shadow-sm" role="group">
+            <button type="button" class="btn btn-outline-secondary btn-sm active">Turno Actual</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm">24 Horas</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm">7 Días</button>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3">
+            <div class="card shadow-sm border-0 border-start border-danger border-4 rounded-3">
+                <div class="card-body py-3">
+                    <span class="text-uppercase fw-bold text-muted d-block mb-1" style="font-size: 0.75rem;">Tiempo Muerto Total</span>
+                    <h3 class="fw-bold text-dark mb-0">142 <span class="fs-6 fw-normal text-muted">min</span></h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card shadow-sm border-0 border-start border-warning border-4 rounded-3">
+                <div class="card-body py-3">
+                    <span class="text-uppercase fw-bold text-muted d-block mb-1" style="font-size: 0.75rem;">MTTR (Promedio)</span>
+                    <h3 class="fw-bold text-dark mb-0">18.5 <span class="fs-6 fw-normal text-muted">min</span></h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card shadow-sm border-0 border-start border-primary border-4 rounded-3">
+                <div class="card-body py-3">
+                    <span class="text-uppercase fw-bold text-muted d-block mb-1" style="font-size: 0.75rem;">Incidentes Totales</span>
+                    <h3 class="fw-bold text-dark mb-0">12 <span class="fs-6 fw-normal text-muted">eventos</span></h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card shadow-sm border-0 border-start border-orange border-4 rounded-3">
+                <div class="card-body py-3">
+                    <span class="text-uppercase fw-bold text-muted d-block mb-1" style="font-size: 0.75rem;">Top Ofensor</span>
+                    <h3 class="fw-bold text-dark mb-0" style="font-size: 1.4rem;">PAM <span class="fs-6 fw-normal text-muted">(Falta Mat.)</span></h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-xl-8">
+            <div class="card shadow-sm border-0 rounded-3 h-100">
+                <div class="card-header bg-white border-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold text-dark mb-0"><i class="bi bi-bar-chart-fill text-primary me-2"></i>Minutos Muertos por Equipo</h6>
+                    <span class="badge bg-light text-muted font-monospace">Acumulado</span>
+                </div>
+                <div class="card-body d-flex align-items-center justify-content-center p-4">
+                    <canvas id="machinesChart" style="max-height: 320px; width: 100%;"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-4">
+            <div class="card shadow-sm border-0 rounded-3 h-100">
+                <div class="card-header bg-white border-0 pt-3 pb-0">
+                    <h6 class="fw-bold text-dark mb-0"><i class="bi bi-pie-chart-fill text-success me-2"></i>Distribución por Tipo de Paro</h6>
+                </div>
+                <div class="card-body d-flex align-items-center justify-content-center p-4">
+                    <canvas id="typesChart" style="max-height: 260px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Inyección segura de datos desde el backend de Flask
+    const barLabels = {{ bar_labels | tojson | safe }};
+    const barData = {{ bar_data | tojson | safe }};
+    
+    const pieLabels = {{ pie_labels | tojson | safe }};
+    const pieData = {{ pie_data | tojson | safe }};
+
+    // 1. Gráfica de Barras Dinámica (Minutos Muertos por Equipo)
+    const ctxBar = document.getElementById('machinesChart').getContext('2d');
+    new Chart(ctxBar, {
+        type: 'bar',
+        data: {
+            labels: barLabels,
+            datasets: [{
+                label: 'Minutos Acumulados',
+                data: barData,
+                backgroundColor: '#0d6efd',
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { 
+                y: { 
+                    beginAtZero: true, 
+                    title: { display: true, text: 'Minutos en Paro' } 
+                } 
+            }
+        }
+    });
+
+    // 2. Gráfica de Dona Dinámica (Distribución por Tipo de Paro)
+    const ctxPie = document.getElementById('typesChart').getContext('2d');
+    new Chart(ctxPie, {
+        type: 'doughnut',
+        data: {
+            labels: pieLabels,
+            datasets: [{
+                data: pieData,
+                backgroundColor: ['#dc3545', '#6c757d', '#fd7e14', '#ffc107', '#17a2b8']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { 
+                legend: { 
+                    position: 'bottom', 
+                    labels: { boxWidth: 12, font: { size: 11 } } 
+                } 
+            }
+        }
+    });
+</script>
+{% endblock %}

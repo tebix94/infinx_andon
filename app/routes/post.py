@@ -127,7 +127,7 @@ def close(post_id):
 
             assigned_user = Users.query.filter_by(employee_number=employee_number).first()
 
-            if not assigned_user.is_staff or not assigned_user.is_technician:
+            if not (assigned_user.is_staff or assigned_user.is_technician):
                 db.session.rollback()
                 flash('¡Tu usuario no tiene permisos para cerrar órdenes!', 'danger')
                 return redirect(url_for('post.requests'))
