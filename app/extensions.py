@@ -16,7 +16,7 @@ class Base(DeclarativeBase):
     metadata = MetaData(naming_convention=convention)
 
 # Create database instance
-db = SQLAlchemy(Base)
+db = SQLAlchemy(model_class=Base)
 
 # Create login manager instance
 #login_manager = LoginManager()

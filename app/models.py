@@ -3,19 +3,25 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from flask_login import UserMixin
 from datetime import datetime, timezone
 from werkzeug.security import generate_password_hash, check_password_hash
-from app.extensions import db, #login_manager
+from .extensions import db#, login_manager
 
 class Users(UserMixin, db.Model):
     __tablename__ = 'users'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    employee_id: Mapped[int] = mapped_column(Integer, unique=True, nullable=False)
+    employee_number: Mapped[str] = mapped_column(String(16), unique=True, nullable=False)
     #password: Mapped[str] = mapped_column(String(256), nullable=False)
     first_name: Mapped[str] = mapped_column(String(16), nullable=False)
     last_name: Mapped[str] = mapped_column(String(30), nullable=False)
     is_staff: Mapped[bool] = mapped_column(Boolean, default=False, nullable=True)
     is_technician: Mapped[bool] = mapped_column(Boolean, default=False, nullable=True)
     is_operator: Mapped[bool] = mapped_column(Boolean, default=False, nullable=True)
+
+    # Relationships
+    posts_from_user_requester: Mapped[list['Posts']] = relationship(back_populates='user_requester',
+                                                                    foreign_keys='Posts.user_requester_id')
+    posts_from_user_assigned: Mapped[list['Posts']] = relationship(back_populates='user_assigned',
+                                                                   foreign_keys='Posts.user_assigned_id')
 
     def __repr__(self):
         return f'<User {self.first_name} {self.last_name}>'
@@ -94,7 +100,8 @@ class Posts(db.Model):
     __tablename__ = 'posts'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[int] = mapped_column(Integer, ForeignKey('users.id'), nullable=False)
+    user_requester_id: Mapped[int] = mapped_column(Integer, ForeignKey('users.id'), nullable=True)
+    user_assigned_id: Mapped[int] = mapped_column(Integer, ForeignKey('users.id'), nullable=True)
     machine_id: Mapped[int] = mapped_column(Integer, ForeignKey('machines.id'), nullable=False)
     interruption_id: Mapped[int] = mapped_column(Integer, ForeignKey('interruption_types.id'), nullable=True)
     substation_id: Mapped[int] = mapped_column(Integer, ForeignKey('substations.id'), nullable=True)
@@ -106,7 +113,10 @@ class Posts(db.Model):
     description: Mapped[str] = mapped_column(Text, nullable=True)
     
     # Relationships
-    author: Mapped['Users'] = relationship(back_populates='posts')
+    user_requester: Mapped['Users'] = relationship(back_populates='posts_from_user_requester',
+                                                   foreign_keys=[user_requester_id])
+    user_assigned: Mapped['Users'] = relationship(back_populates='posts_from_user_assigned',
+                                                  foreign_keys=[user_assigned_id])
     interruption_type: Mapped['InterruptionTypes'] = relationship(back_populates='posts')
     machine: Mapped['Machines'] = relationship(back_populates='posts')
     substation: Mapped['Substations'] = relationship(back_populates='posts')

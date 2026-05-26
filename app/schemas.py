@@ -1,11 +1,13 @@
 from pydantic import BaseModel, Field, model_validator
 
 class UserCreateSchema(BaseModel):
-    employee_id: str = Field(min_length=3, max_length=20)
+    employee_number: str = Field(min_length=4, max_length=10)
+    employee_number_admin: str = Field(min_length=4, max_length=10)
     #password: str = Field(min_length=8)
     #password_confirmation: str
     first_name: str
     last_name: str
+    role_name: str
 
     # This is the "Magic" that replaces your manual IF checks
     '''
@@ -24,6 +26,7 @@ class UserLoginSchema(BaseModel):
 '''
 
 class CreatePostSchema(BaseModel):
-    part_number: str = Field(min_length=3, max_length=30)
+    employee_number: str = Field(min_length=4, max_length=10)
+    machine_id: str
+    interruption_id: str
     description: str
-    assigned_id: str

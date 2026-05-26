@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Crear orden de trabajo{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-4"> 
+        <div class="card shadow border-0">
+            <div class="card-body p-4">
+                <h1 class="text-center h3 mb-4">Crear orden de trabajo</h1>
+
+                <form method="POST" id="work-order-form">
+                    
+                    <!-- Campo: Número de empleado -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Número de empleado</label>
+                        <input type="text" name="employee_number" id="employee_number" class="form-control" placeholder="Escanea tu credencial" required autocomplete="off" autofocus>
+                        <div id="permission-message" class="text-danger small mt-2 d-none"></div>
+                    </div>
+
+                    <!-- Campo: Equipo -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Seleccionar el equipo para asignarle una orden</label>
+                        <select name="machine_id" id="machine" class="form-select" required>
+                            <option value="" selected disabled>Selecciona un equipo...</option>
+                            {% for machine in machines %}
+                                <option value="{{ machine.id }}">{{ machine.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Campo: Causa de interrupción -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Seleccionar la causa de la interrupción de equipo</label>
+                        <select name="interruption_id" id="interruption_type" class="form-select" required>
+                            <option value="" selected disabled>Selecciona una causa...</option>
+                            {% for interruption_type in interruption_types %}
+                                <option value="{{ interruption_type.id }}">{{ interruption_type.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Campo: Comentarios -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Comentarios adicionales</label>
+                        <textarea name="description" class="form-control" rows="5" placeholder="Escribe tus notas aquí..."></textarea>
+                    </div>
+
+                    <!-- Botones de acción (Dinámicos) -->
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary d-none" id="submit-button">Colocar orden de trabajo</button>
+                        <a href="{{ url_for('post.requests') }}" class="btn btn-outline-secondary">Cancelar</a>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let isEmployeeValid = false;
+    const empInput = document.getElementById('employee_number');
+    const submitBtn = document.getElementById('submit-button');
+    const messageDiv = document.getElementById('permission-message');
+    const form = document.getElementById('work-order-form');
+
+    // Respetamos el formato original de la base de datos (sin modificar a minúsculas)
+    const validStaffNumbers = [
+        {% for u in users %}
+            "{{ u.employee_number|string|trim }}"{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    console.log("Lista de empleados autorizados cargados en el cliente:", validStaffNumbers);
+
+    function validateEmployeeLocal(empNumber, submitAfterValidation = false) {
+        // Limpiamos espacios y caracteres de control invisibles, pero CONSERVAMOS las mayúsculas/minúsculas originales
+        const cleanNumber = empNumber.replace(/[^a-zA-Z0-9]/g, '');
+
+        if (cleanNumber === '') {
+            submitBtn.classList.add('d-none');
+            messageDiv.classList.add('d-none');
+            isEmployeeValid = false;
+            return;
+        }
+
+        // La comparación ahora requiere coincidencia exacta (ej: "137765A" no es igual a "137765a")
+        if (validStaffNumbers.includes(cleanNumber)) {
+            submitBtn.classList.remove('d-none');
+            messageDiv.classList.add('d-none');
+            isEmployeeValid = true;
+            
+            if (submitAfterValidation) {
+                // Sincronizamos el valor limpio en el input antes de enviar al backend
+                empInput.value = cleanNumber;
+                form.submit();
+            }
+        } else {
+            submitBtn.classList.add('d-none');
+            messageDiv.textContent = `Tu perfil actual no está asignado para crear órdenes de trabajo (Código leído: ${cleanNumber})`;
+            messageDiv.classList.remove('d-none');
+            isEmployeeValid = false;
+        }
+    }
+
+    // Al escribir o escanear, limpiamos caracteres extraños pero dejamos las letras intactas
+    empInput.addEventListener('input', function() {
+        const sanitized = this.value.replace(/[^a-zA-Z0-9]/g, '');
+        if (this.value !== sanitized) {
+            this.value = sanitized; 
+        }
+        validateEmployeeLocal(this.value, false);
+    });
+
+    // Captura el disparo final del lector de tarjetas
+    empInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault(); 
+            validateEmployeeLocal(this.value, true);
+        }
+    });
+
+    form.addEventListener('submit', function(e) {
+        if (!isEmployeeValid) {
+            e.preventDefault(); 
+        } else {
+            // Asegurar que se vaya limpio preservando el caso original si dan clic manual
+            empInput.value = empInput.value.replace(/[^a-zA-Z0-9]/g, '');
+        }
+    });
+</script>
+
+{% endblock content %}

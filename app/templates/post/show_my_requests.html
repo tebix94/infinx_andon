@@ -1,0 +1,405 @@
+{% extends "base.html" %}
+
+{% block title %}Órdenes de Trabajo | Infinx{% endblock %}
+
+{# MACRO REUTILIZABLE PARA LA PAGINACIÓN #}
+{% macro render_pagination(pagination) %}
+    {% if pagination and pagination.pages > 1 %}
+    <nav aria-label="Navegación de páginas" class="my-4">
+        <ul class="pagination justify-content-center shadow-sm">
+            
+            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                <a class="page-link border-secondary border-opacity-25" 
+                   href="{{ url_for('post.requests', page=pagination.prev_num, edit_id=request.args.get('edit_id')) if pagination.has_prev else '#' }}">
+                    <i class="bi bi-chevron-left"></i> Anterior
+                </a>
+            </li>
+
+            {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if page_num %}
+                    <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                        <a class="page-link border-secondary border-opacity-25 {% if page_num == pagination.page %}bg-dark border-dark text-white{% else %}text-secondary{% endif %}" 
+                           href="{{ url_for('post.requests', page=page_num, edit_id=request.args.get('edit_id')) }}">
+                            {{ page_num }}
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link border-secondary border-opacity-25">...</span></li>
+                {% endif %}
+            {% endfor %}
+
+            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                <a class="page-link border-secondary border-opacity-25" 
+                   href="{{ url_for('post.requests', page=pagination.next_num, edit_id=request.args.get('edit_id')) if pagination.has_next else '#' }}">
+                    Siguiente <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+            
+        </ul>
+    </nav>
+    {% endif %}
+{% endmacro %}
+
+
+{% block content %}
+<div class="container mt-5">
+    {% if not posts.items %}
+        <div class="text-center py-5 my-5">
+            <div class="display-1 text-muted mb-3">😊</div>
+            <h3 class="fw-semibold text-secondary">¡Felicidades! No hay órdenes de trabajo abiertas</h3>
+            <p class="text-muted">Cuando se registren nuevas fallas o solicitudes de mantenimiento, aparecerán en este panel.</p>
+            <a href="{{ url_for('post.create') }}" class="btn btn-outline-primary mt-3">
+                <i class="bi bi-plus-lg me-1"></i> Crear una nueva orden
+            </a>
+        </div>
+    {% else %}
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h2 fw-bold text-dark mb-1">Órdenes de trabajo</h1>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('post.create') }}" class="btn btn-primary shadow-sm">
+                    <i class="bi bi-plus-lg me-1"></i> Nueva orden
+                </a>
+                <a href="{{ url_for('auth.signup') }}" class="btn btn-outline-primary shadow-sm">
+                    <i class="bi bi-plus-lg me-1"></i> Registrarse
+                </a>
+            </div>
+        </div>
+
+        {# RENDERIZADO DE PAGINACIÓN SUPERIOR #}
+        <div class="mt-2 pb-1">
+            {{ render_pagination(pagination) }}
+        </div>
+
+        <div class="row row-cols-1 row-cols-md-2 g-4">
+            {% for post in posts.items %}
+                {% if not post.end_date %} 
+                    {% set is_editing = (request.args.get('edit_id')|int == post.id) %}
+
+                    <div class="col">
+                        <div class="card h-100 shadow-sm border {% if is_editing %}border-warning{% else %}border-secondary border-opacity-25{% endif %} rounded-3 overflow-hidden">
+                            
+                            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3 px-4 border-0">
+                                <div class="d-flex align-items-center me-2 text-truncate">
+                                    <i class="bi bi-cpu text-info me-2 fs-5"></i>
+                                    <span class="fs-5 fw-bold tracking-wide text-truncate" title="{{ post.machine.name if post.machine else 'Sin Máquina Asignada' }}">
+                                        {{ post.machine.name if post.machine else 'MÁQUINA NO VÁLIDA' }}
+                                    </span>
+                                </div>
+
+                                <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                                    {% if is_editing %}
+                                        <a href="{{ url_for('post.requests', page=pagination.page) }}" class="btn btn-sm btn-secondary shadow-sm fw-semibold">
+                                            <i class="bi bi-x-lg"></i> Cancelar
+                                        </a>
+                                    {% else %}
+                                        <a href="{{ url_for('post.requests', page=pagination.page, edit_id=post.id) }}" class="btn btn-sm btn-outline-light shadow-sm fw-semibold text-white-50 text-hover-white">
+                                            <i class="bi bi-pencil-square"></i> Editar
+                                        </a>
+                                    {% endif %}
+                                    <span class="badge bg-light text-dark fs-6 fw-bold px-3 py-2 shadow-sm">
+                                        REQ#{{ post.id }}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="card-body bg-body-tertiary p-4 d-flex flex-column">
+                                
+                                <div class="row g-2 mb-4 bg-white p-3 rounded-3 border border-secondary border-opacity-10 shadow-sm text-center align-items-center">
+                                    <div class="col-4 border-end border-secondary border-opacity-15 px-1">
+                                        <span class="text-muted d-block text-uppercase fw-bold mb-1" style="font-size: 0.65rem; tracking-wider">Requisitor</span>
+                                        <span class="text-dark fw-semibold small d-block text-truncate" title="{{ post.user_requester.first_name }} {{ post.user_requester.last_name }}">
+                                            <i class="bi bi-person text-secondary me-1"></i>{{ post.user_requester.first_name }}
+                                        </span>
+                                    </div>
+                                    <div class="col-4 border-end border-secondary border-opacity-15 px-1">
+                                        <span class="text-muted d-block text-uppercase fw-bold mb-1" style="font-size: 0.65rem; tracking-wider">Tipo de orden</span>
+                                        <span class="text-dark fw-semibold small d-block text-truncate" title="{{ post.interruption_type.name if post.interruption_type else 'No definido' }}">
+                                            <i class="bi bi-exclamation-octagon text-danger me-1"></i>{{ post.interruption_type.name if post.interruption_type else 'N/A' }}
+                                        </span>
+                                    </div>
+                                    <div class="col-4 px-1">
+                                        <span class="text-muted d-block text-uppercase fw-bold mb-1" style="font-size: 0.65rem; tracking-wider">Inicio</span>
+                                        <span class="text-dark fw-semibold small d-block text-truncate">
+                                            <i class="bi bi-calendar3 text-secondary me-1"></i>{{ post.start_date.strftime('%d/%m/%y') }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <h5 class="card-title fw-bold mb-2 text-muted fs-6 text-uppercase tracking-wider">
+                                    <i class="bi bi-chat-left-text me-1 small"></i> Comentarios de la falla
+                                </h5>
+                                
+                                <div class="p-3 bg-white rounded-3 border border-secondary border-opacity-10 flex-grow-1 mb-4 shadow-sm">
+                                    <p class="card-text small mb-0 {% if not post.description or post.description.strip() == '' %}text-muted fst-italic opacity-75{% else %}text-secondary{% endif %}" style="white-space: pre-line;">
+                                        {% if post.description and post.description.strip() != "" %}
+                                            {{ post.description }}
+                                        {% else %}
+                                            No hay comentarios adicionales registrados en esta orden.
+                                        {% endif %}
+                                    </p>
+                                </div>
+
+                                {# EDICIÓN EXCLUSIVA EN LÍNEA (TIPO DE INTERRUPCIÓN) #}
+                                {% if is_editing %}
+                                    <div class="p-3 bg-white rounded border border-warning border-opacity-50 mb-4 shadow-sm dynamic-edit-zone">
+                                        <span class="text-muted d-block small text-uppercase fw-bold tracking-wider mb-2">Reasignar Categoría</span>
+                                        
+                                        <form action="{{ url_for('post.reassign', post_id=post.id, page=pagination.page) }}" method="POST">
+                                            <div class="mb-3">
+                                                <label class="form-label small text-muted fw-semibold text-uppercase mb-1">Tipo de Interrupción</label>
+                                                <select class="form-select form-select-sm border-secondary border-opacity-25 shadow-sm" name="interruption_id">
+                                                    {% for interruption_type in interruption_types %}
+                                                        <option value="{{ interruption_type.id }}" {% if post.interruption_id == interruption_type.id %}selected{% endif %}>
+                                                            {{ interruption_type.name }}
+                                                        </option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            
+                                            <button type="submit" class="btn btn-sm btn-warning text-dark fw-semibold w-100 shadow-sm py-2 text-uppercase tracking-wide">
+                                                <i class="bi bi-save me-1"></i> Actualizar
+                                            </button>
+                                        </form>
+                                    </div>
+                                {% endif %}
+
+                                {# SECCIÓN DE ACCIONES #}
+                                <hr class="text-muted opacity-25 my-1">
+                                <div class="d-flex gap-2 mt-2">
+                                    {% if is_editing %}
+                                        <button type="button" 
+                                                class="btn btn-outline-danger btn-sm w-100 py-2 fw-semibold text-uppercase tracking-wide shadow-sm" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#deleteModal-{{ post.id }}">
+                                            <i class="bi bi-trash3 me-1"></i> Eliminar orden
+                                        </button>
+                                    {% else %}
+                                        <button type="button" 
+                                                class="btn btn-success btn-sm w-100 py-2 fw-semibold text-uppercase tracking-wide shadow-sm btn-open-close-modal"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#closeOrderModal-{{ post.id }}">
+                                            <i class="bi bi-check-circle me-1"></i> Cerrar orden
+                                        </button>
+                                    {% endif %}
+                                </div>
+                                
+                            </div>
+                        </div>
+                    </div>
+
+                    {# MODAL DE CONFIRMACIÓN DE ELIMINACIÓN #}
+                    <div class="modal fade" id="deleteModal-{{ post.id }}" tabindex="-1" aria-labelledby="deleteModalLabel-{{ post.id }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content shadow-lg border-0">
+                                <div class="modal-header bg-danger text-white">
+                                    <h5 class="modal-title fw-bold" id="deleteModalLabel-{{ post.id }}">
+                                        <i class="bi bi-exclamation-triangle-fill me-2"></i> Confirmar Eliminación
+                                    </h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body p-4 text-center">
+                                    <p class="fs-5 text-dark mb-1 fw-semibold">¿Estás seguro de que deseas eliminar esta orden?</p>
+                                    <p class="text-muted small text-start bg-light p-2 rounded border">
+                                        Esta acción es permanente e irreversible.
+                                    </p>
+                                </div>
+                                <div class="modal-footer bg-light border-top-0 d-flex gap-2">
+                                    <button type="button" class="btn btn-secondary flex-grow-1 py-2 fw-semibold" data-bs-dismiss="modal">Cancelar</button>
+                                    <form action="{{ url_for('post.delete', post_id=post.id, template_name='requests', page=pagination.page) }}" method="POST" class="flex-grow-1 m-0">
+                                        <button type="submit" class="btn btn-danger w-100 py-2 fw-semibold text-uppercase tracking-wide">
+                                            Sí, Eliminar
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {# MODAL DE CIERRE DE ORDEN (CON ENTRADA ALFANUMÉRICA PARA CREDENCIAL Y FILTRADO SEGURO) #}
+                    <div class="modal fade close-order-modal-block" id="closeOrderModal-{{ post.id }}" data-machine-id="{{ post.machine_id|default('', true) }}" tabindex="-1" aria-labelledby="closeOrderModalLabel-{{ post.id }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content shadow-lg border-0">
+                                <div class="modal-header bg-success text-white">
+                                    <h5 class="modal-title fw-bold" id="closeOrderModalLabel-{{ post.id }}">
+                                        <i class="bi bi-check-circle-fill me-2"></i> Finalizar orden de trabajo
+                                    </h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <form action="{{ url_for('post.close', post_id=post.id, page=pagination.page) }}" method="POST">
+                                    <div class="modal-body p-4">
+                                        <p class="fs-5 text-dark mb-1 fw-semibold text-center">¿Confirmas el cierre de esta orden?</p>
+                                        <p class="text-muted small mb-3 text-center">La solicitud REQ#{{ post.id }} cambiará su estado a finalizado y dejará de ser visible.</p>
+                                        
+                                        <div class="bg-light p-3 rounded-3 border mb-3 text-start">
+                                            <h6 class="fw-bold text-secondary small text-uppercase tracking-wide mb-3">
+                                                <i class="bi bi-gear-fill me-1 text-primary"></i> Datos de cierre
+                                            </h6>
+                                            
+                                            {# INPUT ALFANUMÉRICO PARA LA CREDENCIAL #}
+                                            <div class="mb-3">
+                                                <label class="form-label small text-muted fw-bold text-uppercase mb-1">Número de empleado</label>
+                                                <div class="input-group input-group-sm shadow-sm">
+                                                    <span class="input-group-text bg-white border-secondary border-opacity-25 text-muted">
+                                                        <i class="bi bi-card-id"></i>
+                                                    </span>
+                                                    <input type="text" 
+                                                           class="form-control border-secondary border-opacity-25 fw-semibold" 
+                                                           name="employee_number" 
+                                                           placeholder="Escanea tu credencia" 
+                                                           required>
+                                                </div>
+                                            </div>
+
+                                            <hr class="text-muted opacity-25 my-3">
+
+                                            <div class="mb-2">
+                                                <label class="form-label small text-muted fw-semibold mb-1">Subestación</label>
+                                                <select class="form-select form-select-sm substation-select" name="substation_id" required>
+                                                    <option value="" disabled selected>-- Selecciona una subestación --</option>
+                                                    {% for substation in substations %}
+                                                        <option value="{{ substation.id }}" data-substation-machine-id="{{ substation.machine_id|default('', true) }}">
+                                                            {{ substation.name }}
+                                                        </option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+
+                                            <div class="mb-2">
+                                                <label class="form-label small text-muted fw-semibold mb-1">Dispositivo / Componente</label>
+                                                <select class="form-select form-select-sm device-select" name="device_id" disabled required>
+                                                    <option value="" disabled selected>-- Selecciona una subestación primero --</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="mb-1">
+                                                <label class="form-label small text-muted fw-semibold mb-1">Causa de falla raíz</label>
+                                                <select class="form-select form-select-sm" name="error_cause_id" required>
+                                                    <option value="" disabled selected>-- Selecciona la causa raíz --</option>
+                                                    {% for cause in error_causes %}
+                                                        <option value="{{ cause.id }}">{{ cause.name }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-3 text-start">
+                                            <label class="form-label fw-semibold small text-muted text-uppercase">Reporte de solución o refacciones (Opcional)</label>
+                                            <textarea name="resolution_comment" class="form-control" rows="3" placeholder="Describa brevemente la acción realizada y el componente afectado."></textarea>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer bg-light border-top-0 default-modal-actions">
+                                        <button type="button" class="btn btn-secondary py-2 fw-semibold" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="submit" class="btn btn-success py-2 fw-semibold text-uppercase tracking-wide">Confirmar Cierre</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+        
+        {# RENDERIZADO DE PAGINACIÓN INFERIOR #}
+        <div class="mt-4 pb-1">
+            {{ render_pagination(pagination) }}
+        </div>
+
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Mapeo dinámico de los dispositivos usando variables seguras desde Jinja
+    const devicesMap = [
+        {% for device in devices %}
+        {
+            id: {{ device.id|tojson }},
+            name: {{ device.name|tojson }},
+            substationId: {{ device.substation_id|tojson }}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    // Control dinámico de apertura de modales de Bootstrap
+    const modals = document.querySelectorAll('.close-order-modal-block');
+    modals.forEach(function(modal) {
+        modal.addEventListener('show.bs.modal', function () {
+            const machineId = modal.getAttribute('data-machine-id').toString().trim();
+            const substationSelect = modal.querySelector('.substation-select');
+            if (!substationSelect) return;
+
+            const options = substationSelect.querySelectorAll('option');
+            
+            options.forEach(function(option) {
+                // Mantener siempre visible y seleccionada por defecto la primera opción
+                if (option.value === "") {
+                    option.selected = true;
+                    return;
+                }
+
+                const optionMachineId = option.getAttribute('data-substation-machine-id').toString().trim();
+
+                // CONTROL CONTRA ID DE MÁQUINA INVÁLIDO (""):
+                // Si la orden no tiene máquina válida, muestra todas las subestaciones (Fallback seguro).
+                // Si la máquina es válida, filtra de forma estricta.
+                if (machineId === "" || optionMachineId === machineId) {
+                    option.style.display = 'block';
+                    option.disabled = false;
+                } else {
+                    option.style.display = 'none';
+                    option.disabled = true;
+                }
+            });
+
+            // Reseteo preventivo del dropdown secundario de dispositivos
+            const deviceSelect = modal.querySelector('.device-select');
+            if (deviceSelect) {
+                deviceSelect.innerHTML = '<option value="" disabled selected>-- Selecciona una subestación primero --</option>';
+                deviceSelect.setAttribute('disabled', 'disabled');
+            }
+        });
+    });
+
+    // Delegación de eventos para poblar dispositivos al cambiar de subestación
+    document.body.addEventListener('change', function (event) {
+        if (event.target.classList.contains('substation-select')) {
+            const substationSelect = event.target;
+            const selectedSubstationId = substationSelect.value.toString();
+            
+            const currentForm = substationSelect.closest('form');
+            if (!currentForm) return;
+
+            const deviceSelect = currentForm.querySelector('.device-select');
+            if (!deviceSelect) return;
+
+            deviceSelect.innerHTML = '';
+            
+            const defaultOption = document.createElement('option');
+            defaultOption.value = "";
+            defaultOption.disabled = true;
+            defaultOption.selected = true;
+            defaultOption.textContent = "-- Selecciona un dispositivo --";
+            deviceSelect.appendChild(defaultOption);
+
+            const filteredDevices = devicesMap.filter(d => d.substationId.toString() === selectedSubstationId);
+
+            if (filteredDevices.length > 0) {
+                deviceSelect.removeAttribute('disabled');
+                filteredDevices.forEach(device => {
+                    const option = document.createElement('option');
+                    option.value = device.id;
+                    option.textContent = device.name;
+                    deviceSelect.appendChild(option);
+                });
+            } else {
+                defaultOption.textContent = "-- No hay dispositivos en esta subestación --";
+                deviceSelect.setAttribute('disabled', 'disabled');
+            }
+        }
+    });
+});
+</script>
+{% endblock content %}

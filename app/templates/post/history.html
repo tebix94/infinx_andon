@@ -1,0 +1,364 @@
+{% extends "base.html" %}
+
+{% block title %}Historial de Órdenes | Infinx{% endblock %}
+
+{# MACRO DE PAGINACIÓN ADAPTADA PARA CONSERVAR TODOS LOS FILTROS EN LA URL #}
+{% macro render_pagination(pagination) %}
+    {% if pagination and pagination.pages > 1 %}
+    <nav aria-label="Navegación de páginas" class="my-4">
+        <ul class="pagination justify-content-center shadow-sm">
+            
+            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                <a class="page-link border-secondary border-opacity-25" 
+                   href="{{ url_for('post.history', page=pagination.prev_num, 
+                           status=request.args.get('status', ''), 
+                           start_date=request.args.get('start_date', ''), 
+                           end_date=request.args.get('end_date', ''),
+                           machine_id=request.args.get('machine_id', ''),
+                           interruption_type_id=request.args.get('interruption_type_id', ''),
+                           user_requester_id=request.args.get('user_requester_id', ''),
+                           user_assigned_id=request.args.get('user_assigned_id', '')) if pagination.has_prev else '#' }}">
+                    <i class="bi bi-chevron-left"></i> Anterior
+                </a>
+            </li>
+
+            {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if page_num %}
+                    <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                        <a class="page-link border-secondary border-opacity-25 {% if page_num == pagination.page %}bg-dark border-dark text-white{% else %}text-secondary{% endif %}" 
+                           href="{{ url_for('post.history', page=page_num, 
+                                   status=request.args.get('status', ''), 
+                                   start_date=request.args.get('start_date', ''), 
+                                   end_date=request.args.get('end_date', ''),
+                                   machine_id=request.args.get('machine_id', ''),
+                                   interruption_type_id=request.args.get('interruption_type_id', ''),
+                                   user_requester_id=request.args.get('user_requester_id', ''),
+                                   user_assigned_id=request.args.get('user_assigned_id', '')) }}">
+                            {{ page_num }}
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link border-secondary border-opacity-25">...</span></li>
+                {% endif %}
+            {% endfor %}
+
+            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                <a class="page-link border-secondary border-opacity-25" 
+                   href="{{ url_for('post.history', page=pagination.next_num, 
+                           status=request.args.get('status', ''), 
+                           start_date=request.args.get('start_date', ''), 
+                           end_date=request.args.get('end_date', ''),
+                           machine_id=request.args.get('machine_id', ''),
+                           interruption_type_id=request.args.get('interruption_type_id', ''),
+                           user_requester_id=request.args.get('user_requester_id', ''),
+                           user_assigned_id=request.args.get('user_assigned_id', '')) if pagination.has_next else '#' }}">
+                    Siguiente <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+            
+        </ul>
+    </nav>
+    {% endif %}
+{% endmacro %}
+
+{% block content %}
+<div class="container mt-5">
+    
+    {# ENCABEZADO #}
+    <div class="mb-4">
+        <h1 class="h2 fw-bold text-dark mb-1">Historial de órdenes de trabajo</h1>
+        <p class="text-muted small mb-0">Consulta de órdenes de trabajo cerradas y en proceso de cierre.</p>
+    </div>
+
+    {# PANEL DE FILTROS EXPANDIDO #}
+    <div class="card border border-secondary border-opacity-25 shadow-sm rounded-3 mb-4">
+        <div class="card-body bg-light p-4">
+            <form method="GET" action="{{ url_for('post.history') }}" class="row g-3 align-items-end">
+                
+                {# FILTRO: ESTATUS #}
+                <div class="col-12 col-sm-6 col-md-4 col-lg-2">
+                    <label class="form-label small text-muted fw-bold text-uppercase mb-1">Estatus</label>
+                    <select class="form-select border-secondary border-opacity-25 shadow-sm" name="status">
+                        <option value="" {% if not request.args.get('status') %}selected{% endif %}>Todos</option>
+                        <option value="open" {% if request.args.get('status') == 'open' %}selected{% endif %}>Abiertas</option>
+                        <option value="closed" {% if request.args.get('status') == 'closed' %}selected{% endif %}>Cerradas</option>
+                    </select>
+                </div>
+
+                {# FILTRO: MÁQUINA #}
+                <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                    <label class="form-label small text-muted fw-bold text-uppercase mb-1">Máquina</label>
+                    <select class="form-select border-secondary border-opacity-25 shadow-sm" name="machine_id">
+                        <option value="" {% if not request.args.get('machine_id') %}selected{% endif %}>Todas las máquinas</option>
+                        {% for machine in machines %}
+                            <option value="{{ machine.id }}" {% if request.args.get('machine_id')|int == machine.id %}selected{% endif %}>
+                                {{ machine.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                {# FILTRO: TIPO DE INTERRUPCIÓN #}
+                <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                    <label class="form-label small text-muted fw-bold text-uppercase mb-1">Tipo Interrupción</label>
+                    <select class="form-select border-secondary border-opacity-25 shadow-sm" name="interruption_type_id">
+                        <option value="" {% if not request.args.get('interruption_type_id') %}selected{% endif %}>Todos los tipos</option>
+                        {% for itype in interruption_types %}
+                            <option value="{{ itype.id }}" {% if request.args.get('interruption_type_id')|int == itype.id %}selected{% endif %}>
+                                {{ itype.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                {# FILTRO: REQUISITOR (SOLICITANTE) #}
+                <div class="col-12 col-sm-6 col-md-6 col-lg-2">
+                    <label class="form-label small text-muted fw-bold text-uppercase mb-1">Solicitado Por</label>
+                    <select class="form-select border-secondary border-opacity-25 shadow-sm" name="user_requester_id">
+                        <option value="" {% if not request.args.get('user_requester_id') %}selected{% endif %}>Todos</option>
+                        {% for user in users %}
+                            <option value="{{ user.id }}" selected>
+                                {{ user.first_name }} {{ user.last_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                {# FILTRO: TÉCNICO ASIGNADO #}
+                <div class="col-12 col-sm-6 col-md-6 col-lg-2">
+                    <label class="form-label small text-muted fw-bold text-uppercase mb-1">Asignado A</label>
+                    <select class="form-select border-secondary border-opacity-25 shadow-sm" name="user_assigned_id">
+                        <option value="" {% if not request.args.get('user_assigned_id') %}selected{% endif %}>Todos</option>
+                        {% for user in users %}
+                            <option value="{{ user.id }}" {% if request.args.get('user_assigned_id')|int == user.id %}selected{% endif %}>
+                                {{ user.first_name }} {{ user.last_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                {# FILTRO: FECHA INICIO #}
+                <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-lg-3">
+                    <label class="form-label small text-muted fw-bold text-uppercase mb-1">Desde</label>
+                    <input type="date" class="form-control border-secondary border-opacity-25 shadow-sm" 
+                           name="start_date" value="{{ request.args.get('start_date', '') }}">
+                </div>
+
+                {# FILTRO: FECHA FIN #}
+                <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-lg-3">
+                    <label class="form-label small text-muted fw-bold text-uppercase mb-1">Hasta</label>
+                    <input type="date" class="form-control border-secondary border-opacity-25 shadow-sm" 
+                           name="end_date" value="{{ request.args.get('end_date', '') }}">
+                </div>
+
+                {# BOTONES DE ACCIÓN #}
+                <div class="col-12 col-md-4 col-lg-6 d-flex justify-content-md-end gap-2 mt-3">
+                    <a href="{{ url_for('post.history') }}" class="btn btn-outline-secondary shadow-sm fw-semibold px-4 w-100 w-md-auto">
+                        Limpiar Filtros
+                    </a>
+                    <button type="submit" class="btn btn-dark shadow-sm fw-semibold px-5 w-100 w-md-auto">
+                        <i class="bi bi-funnel-fill me-1"></i> Filtrar Historial
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    {# TABLA DE RESULTADOS #}
+    {% if not posts.items %}
+        <div class="text-center py-5 my-5 border rounded-3 bg-white shadow-sm">
+            <div class="display-1 text-muted mb-3">🔍</div>
+            <h4 class="fw-semibold text-secondary">No se encontraron registros</h4>
+            <p class="text-muted mb-0">Prueba cambiando los parámetros de filtrado o el rango de fechas.</p>
+        </div>
+    {% else %}
+        <div class="card border border-secondary border-opacity-25 shadow-sm rounded-3 overflow-hidden">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 bg-white">
+                    <thead class="table-dark text-uppercase tracking-wider small">
+                        <tr>
+                            <th scope="col" class="ps-4 py-3" style="width: 8%">Folio</th>
+                            <th scope="col" class="py-3" style="width: 18%">Máquina</th>
+                            <th scope="col" class="py-3" style="width: 15%">Tipo interrupción</th>
+                            <th scope="col" class="py-3" style="width: 12%">Requisitor</th>
+                            <th scope="col" class="py-3" style="width: 15%">Fecha Apertura</th>
+                            <th scope="col" class="py-3" style="width: 15%">Fecha Cierre</th>
+                            <th scope="col" class="py-3" style="width: 12%">Estatus</th>
+                            <th scope="col" class="pe-4 py-3 text-end" style="width: 5%">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody class="small">
+                        {% for post in posts.items %}
+                            <tr>
+                                <td class="ps-4 fw-bold text-secondary">REQ#{{ post.id }}</td>
+                                <td>
+                                    <div class="fw-bold text-dark text-truncate" style="max-width: 160px;" title="{{ post.machine.name }}">
+                                        <i class="bi bi-cpu text-info me-1"></i> {{ post.machine.name }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-10 px-2 py-1">
+                                        {{ post.interruption_type.name if post.interruption_type else 'N/A' }}
+                                    </span>
+                                </td>
+                                <td class="text-muted">{{ post.user_requester.first_name }}</td>
+                                <td>{{ post.start_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    {% if post.end_date %}
+                                        {{ post.end_date.strftime('%Y-%m-%d %H:%M') }}
+                                    {% else %}
+                                        <span class="text-muted fst-italic">-- En proceso --</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if post.end_date %}
+                                        <span class="badge bg-success-subtle text-success border border-success border-opacity-25 px-2 py-1 fw-bold">
+                                            <i class="bi bi-check-circle-fill me-1"></i>Cerrado
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning border-opacity-25 px-2 py-1 fw-bold">
+                                            <i class="bi bi-clock-history me-1"></i>Abierto
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="pe-4 text-end">
+                                    <button type="button" class="btn btn-sm btn-dark shadow-sm px-2 py-1 fw-semibold d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#detailModal-{{ post.id }}">
+                                        <i class="bi bi-eye-fill fs-6"></i> 
+                                        <span>Detalles</span>
+                                    </button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {# RENDEREAR PAGINACIÓN #}
+        {{ render_pagination(posts) }}
+
+        {# MODALES DE DETALLE HISTÓRICO #}
+        {% for post in posts.items %}
+            <div class="modal fade" id="detailModal-{{ post.id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content shadow-lg border-0">
+                        <div class="modal-header {% if post.end_date %}bg-dark{% else %}bg-warning text-dark{% endif %} text-white">
+                            <h5 class="modal-title fw-bold">
+                                <i class="bi bi-file-earmark-text-fill me-2"></i>Detalles de Orden REQ#{{ post.id }}
+                            </h5>
+                            <button type="button" class="btn-close {% if post.end_date %}btn-close-white{% endif %}" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            
+                            {# BLOQUE 1: GENERALES #}
+                            <div class="row g-3 mb-4">
+                                <div class="col-6 col-md-3">
+                                    <span class="text-muted d-block small text-uppercase fw-semibold">Máquina</span>
+                                    <strong class="text-dark"><i class="bi bi-cpu text-info me-1"></i>{{ post.machine.name }}</strong>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <span class="text-muted d-block small text-uppercase fw-semibold">Estatus</span>
+                                    {% if post.end_date %}
+                                        <span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i>Cerrada</span>
+                                    {% else %}
+                                        <span class="text-warning-emphasis fw-bold"><i class="bi bi-clock-history me-1"></i>Abierta</span>
+                                    {% endif %}
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <span class="text-muted d-block small text-uppercase fw-semibold">Solicitado por</span>
+                                    <span class="text-dark">{{ post.user_requester.first_name }} {{ post.user_requester.last_name }}</span>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <span class="text-muted d-block small text-uppercase fw-semibold">Cerrado por</span>
+                                    <span class="text-dark">{{ post.user_assigned.first_name }} {{ post.user_assigned.last_name }}</span>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <span class="text-muted d-block small text-uppercase fw-semibold">Tipo de Falla</span>
+                                    <span class="text-dark">{{ post.interruption_type.name if post.interruption_type else 'N/A' }}</span>
+                                </div>
+                            </div>
+
+                            {# BLOQUE 2: UBICACIÓN, DISPOSITIVO, CAUSA Y ASIGNADO (DINÁMICO) #}
+                            {% if post.substation or post.device or post.error_cause or post.user_assigned %}
+                            <div class="row g-3 mb-4 border-top pt-3">
+                                {% if post.substation %}
+                                <div class="col-12 col-sm-6 col-md-4">
+                                    <span class="text-muted d-block small text-uppercase fw-semibold">Subestación / Celda</span>
+                                    <div class="p-2 bg-light rounded border small text-dark fw-medium mt-1">
+                                        <i class="bi bi-lightning-charge text-warning me-1"></i>{{ post.substation.name }}
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                {% if post.device %}
+                                <div class="col-12 col-sm-6 col-md-4">
+                                    <span class="text-muted d-block small text-uppercase fw-semibold">Dispositivo / Componente</span>
+                                    <div class="p-2 bg-light rounded border small text-dark fw-medium mt-1">
+                                        <i class="bi bi-hdd-network text-primary me-1"></i>{{ post.device.name }}
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                {% if post.user_assigned %}
+                                <div class="col-12 col-sm-6 col-md-4">
+                                    <span class="text-muted d-block small text-uppercase fw-semibold">Técnico Asignado</span>
+                                    <div class="p-2 bg-dark bg-opacity-10 text-dark rounded border small fw-medium mt-1">
+                                        <i class="bi bi-person-badge-fill text-secondary me-1"></i>{{ post.user_assigned.first_name }} {{ post.user_assigned.last_name }}
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                {% if post.error_cause %}
+                                <div class="col-12 col-md-4">
+                                    <span class="text-muted d-block small text-uppercase fw-semibold">Causa del Error</span>
+                                    <div class="p-2 bg-danger bg-opacity-10 text-danger-emphasis rounded border border-danger border-opacity-10 small fw-medium mt-1">
+                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ post.error_cause.name }}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+
+                            {# BLOQUE 3: TIEMPOS #}
+                            <div class="row g-3 mb-4 border-top pt-3">
+                                <div class="col-6">
+                                    <span class="text-muted d-block small text-uppercase fw-semibold">Fecha y Hora Apertura</span>
+                                    <span class="text-dark"><i class="bi bi-calendar-check me-1"></i> {{ post.start_date.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+                                </div>
+                                <div class="col-6">
+                                    <span class="text-muted d-block small text-uppercase fw-semibold">Fecha y Hora Cierre</span>
+                                    <span class="text-dark">
+                                        <i class="bi bi-calendar-x me-1"></i> 
+                                        {{ post.end_date.strftime('%Y-%m-%d %H:%M:%S') if post.end_date else 'No concluido (En proceso)' }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {# BLOQUE 4: REPORTES TEXTUALES #}
+                            <div class="mb-3">
+                                <h6 class="fw-bold text-secondary text-uppercase small tracking-wide">Comentarios Iniciales</h6>
+                                <div class="p-3 bg-light rounded border small" style="white-space: pre-line;">
+                                    {{ post.description if post.description else 'Sin comentarios iniciales.' }}
+                                </div>
+                            </div>
+                            {% if post.end_date %}
+                                <div class="mb-1">
+                                    <h6 class="fw-bold text-success text-uppercase small tracking-wide">Reporte de Solución (Técnico)</h6>
+                                    <div class="p-3 bg-success bg-opacity-10 text-success-emphasis rounded border border-success border-opacity-25 small" style="white-space: pre-line;">
+                                        {{ post.resolution_comment if post.resolution_comment else 'Cerrada sin comentarios adicionales.' }}
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                        </div>
+                        <div class="modal-footer bg-light">
+                            <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Cerrar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+</div>
+{% endblock %}

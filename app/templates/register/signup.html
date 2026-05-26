@@ -1,49 +1,86 @@
 {% extends 'base.html' %}
 
-{% block title %}Registrar cuenta{% endblock %}
+{% block title %}Registrar cuenta | Infinx{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8 col-lg-6">
-        <div class="card shadow-sm border-0">
-            <div class="card-body p-4">
-                <h1 class="h3 mb-4 text-center">Crear cuenta</h1>
+<div class="row justify-content-center mt-4 mb-5">
+    <div class="col-md-10 col-lg-7 col-xl-6">
+        <div class="card shadow-sm border-0 rounded-3">
+            <div class="card-body p-4 p-md-5">
+                
+                <!-- Encabezado con Emoji de Planta -->
+                <div class="text-center mb-4">
+                    <div class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 rounded-circle p-3 mb-2" 
+                    style="width: 120px; height: 120px; font-size: 5rem; line-height: 1; display: inline-flex;">
+                        👷🏼‍♂️
+                    </div>
+                    <h1 class="h3 fw-bold text-dark mb-1">Crear cuenta</h1>
+                    <p class="text-muted small">Registro de nuevo personal en el sistema de monitoreo</p>
+                </div>
 
-                <form method="post">
-                    <div class="row mb-3">
+                <form method="post" novalidate>
+                    
+                    <!-- SECCIÓN 1: VALIDACIÓN DE EMPLEADO -->
+                    <div class="bg-light p-3 rounded-3 mb-4 border border-secondary border-opacity-10">
+                        <span class="d-block text-uppercase fw-bold text-muted small mb-3 tracking-wider">Validación de Credenciales</span>
+                        
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-secondary mb-1">Número de empleado <span class="text-primary">(Nuevo)</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-hash"></i></span>
+                                    <input type="text" name="employee_number" class="form-control border-start-0 ps-0" placeholder="Ej. 12345" required>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-secondary mb-1">Número de empleado <span class="text-danger">(Admin)</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-shield-lock"></i></span>
+                                    <input type="text" name="employee_number_admin" class="form-control border-start-0 ps-0" placeholder="Firma de supervisor" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECCIÓN 2: DATOS PERSONALES -->
+                    <span class="d-block text-uppercase fw-bold text-muted small mb-3 tracking-wider">Información del Perfil</span>
+                    
+                    <div class="row g-3 mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Número de empleado</label>
-                            <input type="text" name="employee_id" class="form-control" required>
+                            <label class="form-label small fw-semibold text-secondary mb-1">Nombre(s)</label>
+                            <input type="text" name="first_name" class="form-control" placeholder="Introduce el nombre" required>
                         </div>
-                        <div class="col-md-6 mt-3 mt-md-0">
-                            <label class="form-label fw-bold">Nombre</label>
-                            <input type="text" name="first_name" class="form-control" required>
-                        </div>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-8">
-                            <label class="form-label fw-bold">Apellidos</label>
-                            <input type="text" name="last_name" class="form-control" required>
-                        </div>
-                    </div>
-
-                    <div class="row mb-4">
+                        
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Contraseña</label>
-                            <input type="password" name="password" id="password" class="form-control" required>
-                        </div>
-                        <div class="col-md-6 mt-3 mt-md-0">
-                            <label class="form-label fw-bold">Confirmar contraseña</label>
-                            <input type="password" name="password_confirmation" id="password_confirmation" class="form-control" required>
-                            <div id="message" class="form-text mt-1"></div>
+                            <label class="form-label small fw-semibold text-secondary mb-1">Apellidos</label>
+                            <input type="text" name="last_name" class="form-control" placeholder="Introduce los apellidos" required>
                         </div>
                     </div>
 
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary">Crear cuenta</button>
-                        <a href="{{ url_for('auth.login') }}" class="btn btn-outline-secondary">Regresar a ingresar cuenta</a>
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold text-secondary mb-1">Asignación de puesto</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-briefcase"></i></span>
+                            <select name="role_name" id="role_name" class="form-select border-start-0 ps-0" required>
+                                <option value="" selected disabled>Selecciona un rol...</option>
+                                <option value="operator">Operador</option>
+                                <option value="technician">Técnico</option>
+                                <option value="administrator">Administrador</option>
+                            </select>
+                        </div>
                     </div>
+
+                    <!-- ACCIONES DEL FORMULARIO -->
+                    <div class="row g-2 pt-2 border-top border-secondary border-opacity-10">
+                        <div class="col-sm-6 order-sm-2">
+                            <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">Crear cuenta</button>
+                        </div>
+                        <div class="col-sm-6 order-sm-1">
+                            <a href="{{ url_for('post.requests') }}" class="btn btn-outline-secondary w-100 py-2">Cancelar</a>
+                        </div>
+                    </div>
+
                 </form>
             </div>
         </div>
@@ -52,5 +89,6 @@
 {% endblock content %}
 
 {% block scripts %}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <script src="{{ url_for('static', filename='user_js/SignupFormDataValidation.js') }}"></script>
 {% endblock %}
