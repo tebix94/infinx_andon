@@ -11,7 +11,6 @@ def metrics():
 
     # Initialize auxiliar lists and variables
     machine_downtimes = [0] * 15
-    total_downtime = 0
     top_downtime_machine = 'None'
     top_downtime = 0
 
@@ -49,8 +48,7 @@ def metrics():
             downtime = current_date_time - post.start_date
 
         downtime_minutes = int(downtime.total_seconds() / 60)
-        machine_downtimes[post.machine_id] += downtime_minutes
-        total_downtime += downtime_minutes
+        machine_downtimes[post.machine_id - 1] += downtime_minutes
 
     for i in range(len(machine_downtimes)):
         if machine_downtimes[i] > top_downtime:
@@ -59,7 +57,7 @@ def metrics():
 
     return render_template(
         'metrics.html',
-        total_minutes=total_downtime,
+        total_minutes=top_downtime,
         total_incidents=len(posts),
         top_downtime_machine=top_downtime_machine,
         bar_labels=machine_names,
