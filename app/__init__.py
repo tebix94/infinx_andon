@@ -9,6 +9,7 @@ from .extensions import db
 from app.routes.base import bp as bp_home
 from app.routes.auth import bp as bp_auth
 from app.routes.post import bp as bp_post
+from app.routes.data import bp as bp_data
 
 def start_app():
     # Create backend instance
@@ -30,5 +31,6 @@ def start_app():
     app.register_blueprint(bp_home)
     app.register_blueprint(bp_auth, url_prefix='/auth')
     app.register_blueprint(bp_post, url_prefix='/post/')
+    app.register_blueprint(bp_data)
 
     return app

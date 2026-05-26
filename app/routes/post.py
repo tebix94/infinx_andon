@@ -1,7 +1,6 @@
 from flask import Blueprint, request, render_template, flash, redirect, url_for
 from sqlalchemy import or_
 from app.schemas import CreatePostSchema
-from app.models import Posts
 from app.extensions import db
 from app.models import Users, Posts, Machines, Devices, Substations, InterruptionTypes, ErrorCauses
 from flask_login import current_user, login_required
