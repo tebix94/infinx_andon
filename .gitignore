@@ -9,11 +9,16 @@ wheels/
 # Virtual environments
 .venv
 
-# Alembic versions
-alembic/versions/
+# Alembic - DO track versions, but ignore their caches
+alembic/versions/__pycache__/
 
-# Static libraries
-bootstrap*
+# Static libraries (Keep if you want bootstrap tracked, or ignore if using CDN)
+# bootstrap* # Databases
+app.db
 
-# Databases
-app.db 
+# Ignore Windows Alternate Data Stream metadata files
+*Zone.Identifier
+
+# Ignore Bootstrap assets
+app/static/css/bootstrap*
+app/static/js/bootstrap*
