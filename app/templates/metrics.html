@@ -7,13 +7,30 @@
     
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
         <div>
-            <h1 class="h3 fw-bold text-dark mb-1">Tiempos de equipo caído</h1>
-            <p class="text-muted small mb-0">Tiempos de interrupción de los equipos.</p>
+            <h1 class="h3 fw-bold text-dark mb-1">Tiempos de interrupción de los equipos</h1>
+            <p class="text-muted small mb-0">Tiempos de interrupción de los equipos en piso.</p>
         </div>
-        <div class="btn-group shadow-sm" role="group">
-            <button type="button" class="btn btn-outline-secondary btn-sm active">Turno</button>
-            <button type="button" class="btn btn-outline-secondary btn-sm">Día</button>
-            <button type="button" class="btn btn-outline-secondary btn-sm">Semana</button>
+        
+        <div class="d-flex align-items-center gap-2">
+            <div class="input-group shadow-sm" style="width: 240px;">
+                <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-calendar3"></i></span>
+                <input type="date" id="metric-date-picker" class="form-control border-start-0 ps-0 text-secondary fw-semibold" value="{{ selected_date or '' }}">
+            </div>
+
+            <div class="row g-0 shadow-sm border rounded-3 overflow-hidden bg-white" id="filter-shift-group" style="width: 380px; height: 38px;">
+                <div class="col-3 d-grid">
+                    <button type="button" class="btn btn-light btn-sm border-0 rounded-0" data-shift="day" style="font-size: 0.8rem; font-weight: 600;">Día</button>
+                </div>   
+                <div class="col-3 d-grid border-start">
+                    <button type="button" class="btn btn-light btn-sm border-0 rounded-0" data-shift="1" style="font-size: 0.8rem; font-weight: 600;">1er Turno</button>
+                </div>
+                <div class="col-3 d-grid border-start">
+                    <button type="button" class="btn btn-light btn-sm border-0 rounded-0" data-shift="2" style="font-size: 0.8rem; font-weight: 600;">2do Turno</button>
+                </div>
+                <div class="col-3 d-grid border-start">
+                    <button type="button" class="btn btn-light btn-sm border-0 rounded-0" data-shift="3" style="font-size: 0.8rem; font-weight: 600;">3er Turno</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -35,8 +52,9 @@
                 </div>
             </div>
         </div>
+
         <div class="col-6 col-lg-3">
-            <div class="card shadow-sm border-0 border-start border-color border-4 rounded-3">
+            <div class="card shadow-sm border-0 border-start border-info border-4 rounded-3">
                 <div class="card-body py-3">
                     <span class="text-uppercase fw-bold text-muted d-block mb-1" style="font-size: 0.75rem;">Principal ofensor</span>
                     <h3 class="fw-bold text-dark mb-0" style="font-size: 1.4rem;">{{ top_downtime_machine }}</h3>
@@ -75,6 +93,27 @@
 
 {% block scripts %}
 <script>
+    document.addEventListener("DOMContentLoaded", () => {
+        // 1. Configurar la fecha predeterminada a "Hoy" si no viene una del servidor
+        const datePicker = document.getElementById('metric-date-picker');
+        if (!datePicker.value) {
+            const today = new Date().toISOString().split('T')[0];
+            datePicker.value = today;
+        }
+
+        // 2. Persistir visualmente el botón de turno seleccionado según los parámetros URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const activeShift = urlParams.get('shift') || 'day'; // Por defecto es 'day' si no hay query string
+        
+        document.querySelectorAll('#filter-shift-group button').forEach(button => {
+            if (button.getAttribute('data-shift') === activeShift) {
+                button.classList.add('active');
+            } else {
+                button.classList.remove('active');
+            }
+        });
+    });
+
     // Inyección segura de datos desde el backend de Flask
     const barLabels = {{ bar_labels | tojson | safe }};
     const barData = {{ bar_data | tojson | safe }};
@@ -127,6 +166,34 @@
                 } 
             }
         }
+    });
+
+    // Función unificada para actualizar la página con los filtros vigentes
+    function aplicarFiltros(turnoSeleccionado) {
+        const fecha = document.getElementById('metric-date-picker').value;
+        
+        // Si no se pasa un turno específico, busca cuál tiene la clase 'active'
+        const btnActivo = document.querySelector('#filter-shift-group button.active');
+        const turno = turnoSeleccionado || (btnActivo ? btnActivo.getAttribute('data-shift') : 'day');
+        
+        // Redirecciona a la ruta de Flask enviando las variables en la URL
+        window.location.href = `/metrics?date=${fecha}&shift=${turno}`;
+    }
+
+    // Escuchar el cambio en el calendario
+    document.getElementById('metric-date-picker').addEventListener('change', function() {
+        aplicarFiltros();
+    });
+
+    // Escuchar el clic en los botones de turno
+    document.querySelectorAll('#filter-shift-group button').forEach(button => {
+        button.addEventListener('click', function() {
+            document.querySelectorAll('#filter-shift-group button').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            
+            const turnoActivo = this.getAttribute('data-shift');
+            aplicarFiltros(turnoActivo);
+        });
     });
 </script>
 {% endblock %}
