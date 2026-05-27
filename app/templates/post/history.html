@@ -113,7 +113,7 @@
 
                 {# FILTRO: REQUISITOR (SOLICITANTE) #}
                 <div class="col-12 col-sm-6 col-md-6 col-lg-2">
-                    <label class="form-label small text-muted fw-bold text-uppercase mb-1">Solicitado Por</label>
+                    <label class="form-label small text-muted fw-bold text-uppercase mb-1">Solicitado por</label>
                     <select class="form-select border-secondary border-opacity-25 shadow-sm" name="user_requester_id">
                         <option value="" {% if not request.args.get('user_requester_id') %}selected{% endif %}>Todos</option>
                         {% for user in users %}
@@ -126,7 +126,7 @@
 
                 {# FILTRO: TÉCNICO ASIGNADO #}
                 <div class="col-12 col-sm-6 col-md-6 col-lg-2">
-                    <label class="form-label small text-muted fw-bold text-uppercase mb-1">Asignado A</label>
+                    <label class="form-label small text-muted fw-bold text-uppercase mb-1">Cerrado por</label>
                     <select class="form-select border-secondary border-opacity-25 shadow-sm" name="user_assigned_id">
                         <option value="" {% if not request.args.get('user_assigned_id') %}selected{% endif %}>Todos</option>
                         {% for user in users %}
@@ -179,9 +179,10 @@
                     <thead class="table-dark text-uppercase tracking-wider small">
                         <tr>
                             <th scope="col" class="ps-4 py-3" style="width: 8%">Folio</th>
-                            <th scope="col" class="py-3" style="width: 18%">Máquina</th>
-                            <th scope="col" class="py-3" style="width: 15%">Tipo interrupción</th>
-                            <th scope="col" class="py-3" style="width: 12%">Requisitor</th>
+                            <th scope="col" class="py-3" style="width: 15%">Máquina</th>
+                            <th scope="col" class="py-3" style="width: 10%">Tipo</th>
+                            <th scope="col" class="py-3" style="width: 12%">Solicitado por</th>
+                            <th scope="col" class="py-3" style="width: 12%">Cerrado por</th>
                             <th scope="col" class="py-3" style="width: 15%">Fecha Apertura</th>
                             <th scope="col" class="py-3" style="width: 15%">Fecha Cierre</th>
                             <th scope="col" class="py-3" style="width: 15%">Tiempo</th>
@@ -204,6 +205,13 @@
                                     </span>
                                 </td>
                                 <td class="text-muted">{{ post.user_requester.first_name }} {{ post.user_requester.last_name }}</td>
+                                <td>
+                                    {% if post.end_date %}
+                                        {{ post.user_assigned.first_name }} {{ post.user_assigned.last_name }}
+                                    {% else %}
+                                        <span class="text-muted fst-italic">-- En proceso --</span>
+                                    {% endif %}
+                                </td>
                                 <td>{{ post.start_date.strftime('%Y-%m-%d %H:%M') }}</td>
                                 <td>
                                     {% if post.end_date %}
