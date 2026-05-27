@@ -1,10 +1,12 @@
-from flask import Blueprint, request, render_template, flash, redirect, url_for
+from flask import Blueprint, request, render_template, flash, redirect, url_for, make_response
 from sqlalchemy import or_
 from app.schemas import CreatePostSchema
 from app.extensions import db
 from app.models import Users, Posts, Machines, Devices, Substations, InterruptionTypes, ErrorCauses
 from flask_login import current_user, login_required
 from datetime import datetime, timedelta
+import pandas as pd
+import io
 
 bp = Blueprint('post', __name__)
 
@@ -121,7 +123,7 @@ def close(post_id):
             post.substation_id = request.form.get('substation_id')
             post.device_id = request.form.get('device_id')
             post.error_cause_id = request.form.get('error_cause_id')
-            post.description = request.form.get('resolution_comment')
+            #post.description = request.form.get('resolution_comment')
             post.end_date = datetime.now()
 
             assigned_user = Users.query.filter_by(employee_number=employee_number).first()
@@ -228,3 +230,93 @@ def history():
         user_requester_id=user_requester_id,  # Enviamos el ID filtrado (o None)
         user_assigned_id=user_assigned_id     # Enviamos el ID filtrado (o None)
     )
+
+@bp.route('/export')
+def export():
+    # 1. Capturar exactamente los mismos filtros de la URL
+    status = request.args.get('status', '')
+    machine_id = request.args.get('machine_id', type=int)
+    interruption_type_id = request.args.get('interruption_type_id', type=int)
+    user_requester_id = request.args.get('user_requester_id', type=int)
+    user_assigned_id = request.args.get('user_assigned_id', type=int)
+    start_date_str = request.args.get('start_date', '')
+    end_date_str = request.args.get('end_date', '')
+
+    # 2. Construir el mismo Query dinámico (Sin paginar)
+    query = Posts.query
+
+    if status == 'open':
+        query = query.filter(Posts.end_date == None)
+    elif status == 'closed':
+        query = query.filter(Posts.end_date != None)
+
+    if machine_id:
+        query = query.filter(Posts.machine_id == machine_id)
+
+    if interruption_type_id:
+        query = query.filter(Posts.interruption_type_id == interruption_type_id)
+
+    if user_requester_id:
+        query = query.filter(Posts.user_requester_id == user_requester_id)
+
+    if user_assigned_id:
+        query = query.filter(Posts.user_assigned_id == user_assigned_id)
+
+    if start_date_str:
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+            query = query.filter(Posts.start_date >= start_date)
+        except ValueError:
+            pass
+
+    if end_date_str:
+        try:
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
+            query = query.filter(Posts.start_date <= end_date)
+        except ValueError:
+            pass
+
+    # Traer todos los registros filtrados ordenados por fecha
+    posts = query.order_by(Posts.start_date.desc()).all()
+
+    # 3. Estructurar los datos para el reporte de Excel
+    data = []
+    for post in posts:
+        # Calcular el tiempo de interrupción en minutos si la orden está cerrada
+        duration = ""
+        if post.end_date and post.start_date:
+            duration = int((post.end_date - post.start_date).total_seconds() / 60)
+
+        data.append({
+            "Folio": f"REQ#{post.id}",
+            "Máquina": post.machine.name if post.machine else "N/A",
+            "Tipo de Interrupción": post.interruption_type.name if post.interruption_type else "N/A",
+            "Solicitado Por": f"{post.user_requester.first_name} {post.user_requester.last_name}" if post.user_requester else "N/A",
+            "Cerrado Por": f"{post.user_assigned.first_name} {post.user_assigned.last_name}" if post.end_date and post.user_assigned else "-- En Proceso --",
+            "Fecha Apertura": post.start_date.strftime('%Y-%m-%d %H:%M') if post.start_date else "",
+            "Fecha Cierre": post.end_date.strftime('%Y-%m-%d %H:%M') if post.end_date else "-- En Proceso --",
+            "Tiempo Muerto (Minutos)": duration,
+            "Estatus": "Cerrado" if post.end_date else "Abierto",
+            "Comentarios Iniciales": post.description or "",
+            #"Reporte de Solución": post.resolution_comment or ""
+        })
+
+    # 4. Crear el archivo Excel en memoria usando un buffer de bytes (evita guardar archivos en el servidor)
+    df = pd.DataFrame(data)
+    output = io.BytesIO()
+    
+    # Usamos el motor openpyxl (requiere: pip install openpyxl)
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Historial_OT')
+    
+    output.seek(0)
+
+    # 5. Construir la respuesta HTTP para forzar la descarga del archivo en el navegador
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"Reporte_Infinx_{timestamp}.xlsx"
+    
+    response = make_response(output.getvalue())
+    response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+    response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    
+    return response

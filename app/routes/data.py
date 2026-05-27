@@ -1,4 +1,4 @@
-from flask import Blueprint, request, render_template
+from flask import Blueprint, request, render_template, redirect, url_for
 from sqlalchemy import or_
 from app.models import Posts, Machines
 from datetime import datetime, timedelta
