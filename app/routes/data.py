@@ -10,7 +10,7 @@ def metrics():
     # Downtime is calculated in minutes
 
     # Initialize auxiliar lists and variables
-    machine_downtimes = [0] * 15
+    machine_downtimes = [0] * 18
     top_downtime_machine = 'None'
     top_downtime = 0
 
@@ -28,7 +28,10 @@ def metrics():
                   'Ball Attached 8',
                   'Ball Attached 10',
                   'Opti Vix',
-                  'Shibuya',]
+                  'Shibuya',
+                  'Marcadora laser',
+                  'Ablacion',
+                  'Hipot',]
 
     # Set target date
     datetime_now = datetime.now()
