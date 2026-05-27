@@ -184,6 +184,7 @@
                             <th scope="col" class="py-3" style="width: 12%">Requisitor</th>
                             <th scope="col" class="py-3" style="width: 15%">Fecha Apertura</th>
                             <th scope="col" class="py-3" style="width: 15%">Fecha Cierre</th>
+                            <th scope="col" class="py-3" style="width: 15%">Tiempo</th>
                             <th scope="col" class="py-3" style="width: 12%">Estatus</th>
                             <th scope="col" class="pe-4 py-3 text-end" style="width: 5%">Acción</th>
                         </tr>
@@ -202,11 +203,18 @@
                                         {{ post.interruption_type.name if post.interruption_type else 'N/A' }}
                                     </span>
                                 </td>
-                                <td class="text-muted">{{ post.user_requester.first_name }}</td>
+                                <td class="text-muted">{{ post.user_requester.first_name }} {{ post.user_requester.last_name }}</td>
                                 <td>{{ post.start_date.strftime('%Y-%m-%d %H:%M') }}</td>
                                 <td>
                                     {% if post.end_date %}
                                         {{ post.end_date.strftime('%Y-%m-%d %H:%M') }}
+                                    {% else %}
+                                        <span class="text-muted fst-italic">-- En proceso --</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if post.end_date %}
+                                        {{ ((post.end_date - post.start_date).total_seconds() / 60) | int }} minutos
                                     {% else %}
                                         <span class="text-muted fst-italic">-- En proceso --</span>
                                     {% endif %}
