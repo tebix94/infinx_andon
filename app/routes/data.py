@@ -1,6 +1,6 @@
 from flask import Blueprint, request, render_template
 from sqlalchemy import func
-from app.models import Posts
+from app.models import Posts, Machines
 from datetime import datetime, timedelta
 
 bp = Blueprint('data', __name__)
@@ -14,24 +14,12 @@ def metrics():
     top_downtime_machine = 'None'
     top_downtime = 0
 
-    machine_names = ['WAM Plug 1',
-                  'WAM Plug 2',
-                  'WAM Recepticle 1',
-                  'WAM Recepticle 2',
-                  'PAM',
-                  'RAM',
-                  'Ball Attached 3',
-                  'Ball Attached 4',
-                  'Ball Attached 5',
-                  'Ball Attached 6',
-                  'Ball Attached 7',
-                  'Ball Attached 8',
-                  'Ball Attached 10',
-                  'Opti Vix',
-                  'Shibuya',
-                  'Marcadora laser',
-                  'Ablacion',
-                  'Hipot',]
+    # Fetch all machine names from the database and store them in a list
+    machine_names = []
+    machines = Machines.query.all()
+
+    for machine in machines:
+        machine_names.append(machine.name)
 
     # Set target date
     datetime_now = datetime.now()
