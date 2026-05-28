@@ -123,7 +123,7 @@ def close(post_id):
             post.substation_id = request.form.get('substation_id')
             post.device_id = request.form.get('device_id')
             post.error_cause_id = request.form.get('error_cause_id')
-            #post.description = request.form.get('resolution_comment')
+            post.description = request.form.get('resolution_comment')
             post.end_date = datetime.now()
 
             assigned_user = Users.query.filter_by(employee_number=employee_number).first()
@@ -298,7 +298,7 @@ def export():
             "Tiempo Muerto (Minutos)": duration,
             "Estatus": "Cerrado" if post.end_date else "Abierto",
             "Comentarios Iniciales": post.description or "",
-            #"Reporte de Solución": post.resolution_comment or ""
+            "Reporte de Solución": post.resolution_comment or ""
         })
 
     # 4. Crear el archivo Excel en memoria usando un buffer de bytes (evita guardar archivos en el servidor)
