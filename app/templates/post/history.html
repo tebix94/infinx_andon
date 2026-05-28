@@ -71,7 +71,9 @@
             <p class="text-muted small mb-0">Consulta de órdenes de trabajo cerradas y en proceso de cierre.</p>
         </div>
         {# BOTÓN REUBICADO Y MÁS GRANDE #}
-        <a href="{{ url_for('post.export') }}" class="btn btn-outline-success shadow-sm fw-semibold p-2.5 d-inline-flex align-items-center justify-content-center gap-2" title="Exportar reporte a Excel" style="font-size: 1.15rem; min-width: 45px; min-height: 45px;">
+        <a href="#" onclick="exportWithFilters(event)"
+        class="btn btn-outline-success shadow-sm fw-semibold p-2.5 d-inline-flex align-items-center justify-content-center gap-2" 
+        title="Exportar reporte a Excel" style="font-size: 1.15rem; min-width: 45px; min-height: 45px;">
             <span class="fs-4 lh-1">💾</span>
             <span class="d-none d-sm-inline small">Exportar</span>
         </a>
@@ -385,4 +387,20 @@
         {% endfor %}
     {% endif %}
 </div>
+
+<script>
+function exportWithFilters(event) {
+    event.preventDefault();
+    
+    // 1. Obtener todos los parámetros de la URL actual (?status=closed&machine_id=2...)
+    const currentParams = window.location.search;
+    
+    // 2. Construir la ruta base de exportación usando Jinja
+    const exportUrl = "{{ url_for('post.export') }}";
+    
+    // 3. Redirigir concatenando los filtros activos
+    window.location.href = exportUrl + currentParams;
+}
+</script>
+
 {% endblock %}

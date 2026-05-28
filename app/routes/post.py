@@ -1,5 +1,6 @@
 from flask import Blueprint, request, render_template, flash, redirect, url_for, make_response
 from sqlalchemy import or_
+from sqlalchemy.orm import joinedload
 from app.schemas import CreatePostSchema
 from app.extensions import db
 from app.models import Users, Posts, Machines, Devices, Substations, InterruptionTypes, ErrorCauses
@@ -123,7 +124,7 @@ def close(post_id):
             post.substation_id = request.form.get('substation_id')
             post.device_id = request.form.get('device_id')
             post.error_cause_id = request.form.get('error_cause_id')
-            post.description = request.form.get('resolution_comment')
+            post.resolution_comment = request.form.get('resolution_comment')
             post.end_date = datetime.now()
 
             assigned_user = Users.query.filter_by(employee_number=employee_number).first()
@@ -233,33 +234,41 @@ def history():
 
 @bp.route('/export')
 def export():
-    # 1. Capturar exactamente los mismos filtros de la URL
-    status = request.args.get('status', '')
+    # 1. Capturar filtros y forzar a None si vienen vacíos "" en la URL
+    status = request.args.get('status', '').strip() or None
+    
     machine_id = request.args.get('machine_id', type=int)
     interruption_type_id = request.args.get('interruption_type_id', type=int)
     user_requester_id = request.args.get('user_requester_id', type=int)
     user_assigned_id = request.args.get('user_assigned_id', type=int)
-    start_date_str = request.args.get('start_date', '')
-    end_date_str = request.args.get('end_date', '')
+    
+    start_date_str = request.args.get('start_date', '').strip() or None
+    end_date_str = request.args.get('end_date', '').strip() or None
 
-    # 2. Construir el mismo Query dinámico (Sin paginar)
-    query = Posts.query
+    # 2. Construir el Query aplicando Eager Loading para optimizar los JOINs
+    # Esto reduce las cientos de consultas a una SOLA consulta masiva y eficiente
+    query = Posts.query.options(
+        joinedload(Posts.machine),
+        joinedload(Posts.interruption_type),
+        joinedload(Posts.user_requester),
+        joinedload(Posts.user_assigned)
+    )
 
     if status == 'open':
         query = query.filter(Posts.end_date == None)
     elif status == 'closed':
         query = query.filter(Posts.end_date != None)
 
-    if machine_id:
+    if machine_id is not None:
         query = query.filter(Posts.machine_id == machine_id)
 
-    if interruption_type_id:
+    if interruption_type_id is not None:
         query = query.filter(Posts.interruption_type_id == interruption_type_id)
 
-    if user_requester_id:
+    if user_requester_id is not None:
         query = query.filter(Posts.user_requester_id == user_requester_id)
 
-    if user_assigned_id:
+    if user_assigned_id is not None:
         query = query.filter(Posts.user_assigned_id == user_assigned_id)
 
     if start_date_str:
@@ -279,10 +288,9 @@ def export():
     # Traer todos los registros filtrados ordenados por fecha
     posts = query.order_by(Posts.start_date.desc()).all()
 
-    # 3. Estructurar los datos para el reporte de Excel
+    # 3. Estructurar los datos para el reporte de Excel (Ahora el bucle es instantáneo)
     data = []
     for post in posts:
-        # Calcular el tiempo de interrupción en minutos si la orden está cerrada
         duration = ""
         if post.end_date and post.start_date:
             duration = int((post.end_date - post.start_date).total_seconds() / 60)
@@ -301,17 +309,15 @@ def export():
             "Reporte de Solución": post.resolution_comment or ""
         })
 
-    # 4. Crear el archivo Excel en memoria usando un buffer de bytes (evita guardar archivos en el servidor)
+    # 4. Generación del archivo Excel
     df = pd.DataFrame(data)
     output = io.BytesIO()
     
-    # Usamos el motor openpyxl (requiere: pip install openpyxl)
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df.to_excel(writer, index=False, sheet_name='Historial_OT')
     
     output.seek(0)
 
-    # 5. Construir la respuesta HTTP para forzar la descarga del archivo en el navegador
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"Reporte_Infinx_{timestamp}.xlsx"
     
