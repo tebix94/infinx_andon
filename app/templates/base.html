@@ -37,11 +37,14 @@
                     <li class="nav-item">
                         <a class="nav-link d-flex align-items-center" href="{{ url_for('post.requests') }}">
                             <span>🗂️Órdenes de trabajo</span>
-                            {% if active_posts_count and active_posts_count > 0 %}
-                                <span class="badge rounded-pill bg-danger ms-2 badge-blink" style="font-size: 0.75rem; padding: 0.35em 0.65em;">
-                                {{ active_posts_count }}
+                                {% if active_posts_count != 0 %}
+                                    <span class="badge rounded-pill bg-danger ms-2 badge-blink" style="font-size: 0.75rem; padding: 0.35em 0.65em;" 
+                                    id="active-posts-count">
+                                    {{ active_posts_count }}
+                                {% else %}
+                                    <span id="active-posts-count"></span>
+                                {% endif %}
                             </span>
-                            {% endif %}
                         </a>
                     </li>
                     
@@ -83,6 +86,39 @@
 
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
 
+    <script>
+        async function refreshPostCount() {
+            try {
+                const response = await fetch('/active-post-count');
+                const data = await response.json();
+                
+                const badge = document.getElementById('active-posts-count');
+                
+                if (data.count > 0) {
+                    badge.textContent = data.count;
+                    // Añadimos las clases de estilo que el badge necesita
+                    badge.classList.add('badge', 'rounded-pill', 'bg-danger', 'ms-2', 'badge-blink');
+                    badge.style.fontSize = '0.75rem';
+                    badge.style.padding = '0.35em 0.65em';
+                } else {
+                    badge.textContent = '';
+                    // Eliminamos las clases para que no ocupe espacio ni se vea
+                    badge.classList.remove('badge', 'rounded-pill', 'bg-danger', 'ms-2', 'badge-blink');
+                    badge.removeAttribute('style'); // Limpiamos los estilos inline
+                }
+            } 
+            catch (error) {
+                console.error('Error al actualizar conteo:', error);
+            }
+        }
+        
+        // Llamada inicial inmediata
+        refreshPostCount();
+        // Llamada asincrona
+        setInterval(refreshPostCount, 3000);
+    </script>
+
+    <!-- All other scripts from child blocks -->
     {% block scripts %}{% endblock %}
     
 </body>

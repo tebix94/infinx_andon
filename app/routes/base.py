@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, jsonify
 from app.models import Posts
 from app import db
 from sqlalchemy import func
@@ -6,11 +6,17 @@ from datetime import datetime
 
 bp = Blueprint('base', __name__)
 
+# Update count indicator on base menu when client request page from URL
 @bp.app_context_processor
 def inject_active_posts():
-    # Suponiendo que usas SQLAlchemy para contar los registros activos
     count = Posts.query.filter(Posts.end_date == None).count()
     return dict(active_posts_count=count)
+
+# JS requests asynchronously the count value which will be inserted in active_posts_count from the frontend side
+@bp.route('/active-post-count')
+def get_active_posts_count():
+    count = Posts.query.filter(Posts.end_date == None).count()
+    return jsonify(count=count)
 
 @bp.route('/')
 def home():

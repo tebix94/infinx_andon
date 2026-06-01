@@ -105,17 +105,17 @@
                                 <th class="text-center">Estado actual</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="table-events">
                             {% if total_incidents != 0 %}
                                 {% for i in range(machine_names | length) %}
                                     {% if machine_incidents[i] != 0 %}
                                         <tr>
-                                            <td class="ps-4 fw-semibold text-dark" id="machine-names-row">{{ machine_names[i] }}</td>
-                                            <td class="text-center" id="machine-data-row">{{ machine_data[i] }} minutos</td>
+                                            <td class="ps-4 fw-semibold text-dark">{{ machine_names[i] }}</td>
+                                            <td class="text-center" id="table-machine-data-row">{{ machine_data[i] }} minutos</td>
                                             <td class="text-center">
-                                                <span class="badge bg-secondary rounded-pill" id="machine-incidents-row"> {{ machine_incidents[i] }} </span>
+                                                <span class="badge bg-secondary rounded-pill"> {{ machine_incidents[i] }} </span>
                                             </td>
-                                            <td class="text-center" id="machine-faults-row">
+                                            <td class="text-center">
                                                 {% if machine_fault_status[i] %}
                                                     🔴<em>Detenido</em>
                                                 {% else %}
@@ -203,23 +203,36 @@
             document.getElementById('card-total-incidents').innerHTML = `${data.total_incidents} <span class="fs-6 fw-normal text-muted">eventos</span>`;
             document.getElementById('card-top-downtime').textContent = data.top_downtime_machine || 'N/A';
 
-            // Actualizar Tabla
-            const tbody = document.querySelector('tbody');
+            // Actualizar Tabla usando el ID único del tbody
+            const tbody = document.getElementById('table-events');
             let rowsHtml = '';
+
             if (data.total_incidents > 0) {
                 data.machine_names.forEach((name, i) => {
                     if (data.machine_incidents[i] > 0) {
+                        // Construimos la fila con los datos nuevos
                         rowsHtml += `<tr>
                             <td class="ps-4 fw-semibold text-dark">${name}</td>
                             <td class="text-center">${data.machine_data[i]} minutos</td>
-                            <td class="text-center"><span class="badge bg-secondary rounded-pill">${data.machine_incidents[i]}</span></td>
-                            <td class="text-center">${data.machine_fault_status[i] ? '🔴<em>Detenido</em>' : '🟢<em>Corriendo</em>'}</td>
+                            <td class="text-center">
+                                <span class="badge bg-secondary rounded-pill">${data.machine_incidents[i]}</span>
+                            </td>
+                            <td class="text-center">
+                                ${data.machine_fault_status[i] ? '🔴<em>Detenido</em>' : '🟢<em>Corriendo</em>'}
+                            </td>
                         </tr>`;
                     }
                 });
             } else {
-                rowsHtml = `<tr><td colspan="4" class="text-center py-4 text-muted">No hay datos.</td></tr>`;
+                // Si no hay incidencias, mostramos el mensaje informativo
+                rowsHtml = `<tr>
+                    <td colspan="4" class="text-center py-4 text-muted">
+                        <i class="bi bi-info-circle me-2"></i>No hay información de incidencias por mostrar.
+                    </td>
+                </tr>`;
             }
+
+            // Inyectamos todo el bloque de una sola vez
             tbody.innerHTML = rowsHtml;
 
             // Actualizar Gráficas de forma segura
