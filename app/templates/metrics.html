@@ -38,7 +38,7 @@
             <div class="card shadow-sm border-0 border-start border-danger border-4 rounded-3">
                 <div class="card-body py-3">
                     <span class="text-uppercase fw-bold text-muted d-block mb-1" style="font-size: 0.75rem;">Tiempo total</span>
-                    <h3 class="fw-bold text-dark mb-0">{{ total_minutes }} <span class="fs-6 fw-normal text-muted">min</span></h3>
+                    <h3 class="fw-bold text-dark mb-0" id="card-total-minutes">{{ total_minutes }} <span class="fs-6 fw-normal text-muted">minutos</span></h3>
                 </div>
             </div>
         </div>
@@ -47,7 +47,7 @@
             <div class="card shadow-sm border-0 border-start border-warning border-4 rounded-3">
                 <div class="card-body py-3">
                     <span class="text-uppercase fw-bold text-muted d-block mb-1" style="font-size: 0.75rem;">Interrupciones totales</span>
-                    <h3 class="fw-bold text-dark mb-0">{{ total_incidents }} <span class="fs-6 fw-normal text-muted">eventos</span></h3>
+                    <h3 class="fw-bold text-dark mb-0" id="card-total-incidents">{{ total_incidents }} <span class="fs-6 fw-normal text-muted">eventos</span></h3>
                 </div>
             </div>
         </div>
@@ -56,7 +56,7 @@
             <div class="card shadow-sm border-0 border-start border-info border-4 rounded-3">
                 <div class="card-body py-3">
                     <span class="text-uppercase fw-bold text-muted d-block mb-1" style="font-size: 0.75rem;">Principal ofensor</span>
-                    <h3 class="fw-bold text-dark mb-0" style="font-size: 1.4rem;">{{ top_downtime_machine }}</h3>
+                    <h3 class="fw-bold text-dark mb-0" style="font-size: 1.4rem;" id="card-top-downtime">{{ top_downtime_machine }}</h3>
                 </div>
             </div>
         </div>
@@ -110,16 +110,16 @@
                                 {% for i in range(machine_names | length) %}
                                     {% if machine_incidents[i] != 0 %}
                                         <tr>
-                                            <td class="ps-4 fw-semibold text-dark">{{ machine_names[i] }}</td>
-                                            <td class="text-center">{{ machine_data[i] }} minutos</td>
+                                            <td class="ps-4 fw-semibold text-dark" id="machine-names-row">{{ machine_names[i] }}</td>
+                                            <td class="text-center" id="machine-data-row">{{ machine_data[i] }} minutos</td>
                                             <td class="text-center">
-                                                <span class="badge bg-secondary rounded-pill"> {{ machine_incidents[i] }} </span>
+                                                <span class="badge bg-secondary rounded-pill" id="machine-incidents-row"> {{ machine_incidents[i] }} </span>
                                             </td>
-                                            <td class="text-center">
+                                            <td class="text-center" id="machine-faults-row">
                                                 {% if machine_fault_status[i] %}
-                                                    🔴 <em>Detenido</em>
+                                                    🔴<em>Detenido</em>
                                                 {% else %}
-                                                    🟢 <em>Corriendo</em>
+                                                    🟢<em>Corriendo</em>
                                                 {% endif %}
                                             </td>
                                         </tr>
@@ -146,107 +146,96 @@
 
 {% block scripts %}
 <script>
+    // 1. Declaramos variables globales para las gráficas
+    let machinesChart, typesChart;
+
     document.addEventListener("DOMContentLoaded", () => {
-        // 1. Configurar la fecha predeterminada a "Hoy" si no viene una del servidor
+        // Inicializar fecha
         const datePicker = document.getElementById('metric-date-picker');
         if (!datePicker.value) {
-            const today = new Date().toISOString().split('T')[0];
-            datePicker.value = today;
+            datePicker.value = new Date().toISOString().split('T')[0];
         }
 
-        // 2. Persistir visualmente el botón de turno seleccionado según los parámetros URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const activeShift = urlParams.get('shift') || 'day'; // Por defecto es 'day' si no hay query string
-        
-        document.querySelectorAll('#filter-shift-group button').forEach(button => {
-            if (button.getAttribute('data-shift') === activeShift) {
-                button.classList.add('active');
-            } else {
-                button.classList.remove('active');
-            }
+        // 2. Inicializar gráficas una vez que el DOM está listo
+        const ctxBar = document.getElementById('machinesChart').getContext('2d');
+        machinesChart = new Chart(ctxBar, {
+            type: 'bar',
+            data: {
+                labels: {{ machine_names | tojson | safe }},
+                datasets: [{
+                    label: 'Minutos Acumulados',
+                    data: {{ machine_data | tojson | safe }},
+                    backgroundColor: '#0d6efd',
+                    borderRadius: 4
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false } } }
         });
+
+        const ctxPie = document.getElementById('typesChart').getContext('2d');
+        typesChart = new Chart(ctxPie, {
+            type: 'doughnut',
+            data: {
+                labels: {{ pie_labels | tojson | safe }},
+                datasets: [{
+                    data: {{ pie_data | tojson | safe }},
+                    backgroundColor: ['#dc3545', '#6c757d', '#fd7e14', '#ffc107', '#17a2b8']
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        });
+
+        // Iniciar refresco automático tras cargar todo
+        setInterval(actualizarDatos, 1000); 
     });
 
-    // Inyección segura de datos desde el backend de Flask
-    const barLabels = {{ machine_names | tojson | safe }};
-    const barData = {{ machine_data | tojson | safe }};
-    
-    const pieLabels = {{ pie_labels | tojson | safe }};
-    const pieData = {{ pie_data | tojson | safe }};
-
-    // 1. Gráfica de Barras Dinámica (Minutos Muertos por Equipo)
-    const ctxBar = document.getElementById('machinesChart').getContext('2d');
-    new Chart(ctxBar, {
-        type: 'bar',
-        data: {
-            labels: barLabels,
-            datasets: [{
-                label: 'Minutos Acumulados',
-                data: barData,
-                backgroundColor: '#0d6efd',
-                borderRadius: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { display: false } },
-            scales: { 
-                y: { 
-                    beginAtZero: true, 
-                    title: { display: true, text: 'Minutos' } 
-                } 
-            }
-        }
-    });
-
-    // 2. Gráfica de Dona Dinámica (Distribución por Tipo de Paro)
-    const ctxPie = document.getElementById('typesChart').getContext('2d');
-    new Chart(ctxPie, {
-        type: 'doughnut',
-        data: {
-            labels: pieLabels,
-            datasets: [{
-                data: pieData,
-                backgroundColor: ['#dc3545', '#6c757d', '#fd7e14', '#ffc107', '#17a2b8']
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: { 
-                legend: { 
-                    position: 'bottom', 
-                    labels: { boxWidth: 12, font: { size: 11 } } 
-                } 
-            }
-        }
-    });
-
-    // Función unificada para actualizar la página con los filtros vigentes
-    function aplicarFiltros(turnoSeleccionado) {
+    async function actualizarDatos() {
         const fecha = document.getElementById('metric-date-picker').value;
-        
-        // Si no se pasa un turno específico, busca cuál tiene la clase 'active'
         const btnActivo = document.querySelector('#filter-shift-group button.active');
-        const turno = turnoSeleccionado || (btnActivo ? btnActivo.getAttribute('data-shift') : 'day');
-        
-        // Redirecciona a la ruta de Flask enviando las variables en la URL
-        window.location.href = `/metrics?date=${fecha}&shift=${turno}`;
-    }
+        const turno = btnActivo ? btnActivo.getAttribute('data-shift') : 'day';
 
-    // Escuchar el cambio en el calendario
-    document.getElementById('metric-date-picker').addEventListener('change', function() {
-        aplicarFiltros();
-    });
+        try {
+            const response = await fetch(`/metrics?date=${fecha}&shift=${turno}&format=json`);
+            const data = await response.json();
 
-    // Escuchar el clic en los botones de turno
-    document.querySelectorAll('#filter-shift-group button').forEach(button => {
-        button.addEventListener('click', function() {
-            document.querySelectorAll('#filter-shift-group button').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
+            // Actualizar tarjetas
+            document.getElementById('card-total-minutes').innerHTML = `${data.total_minutes} <span class="fs-6 fw-normal text-muted">minutos</span>`;
+            document.getElementById('card-total-incidents').innerHTML = `${data.total_incidents} <span class="fs-6 fw-normal text-muted">eventos</span>`;
+            document.getElementById('card-top-downtime').textContent = data.top_downtime_machine || 'N/A';
+
+            // Actualizar Tabla
+            const tbody = document.querySelector('tbody');
+            let rowsHtml = '';
+            if (data.total_incidents > 0) {
+                data.machine_names.forEach((name, i) => {
+                    if (data.machine_incidents[i] > 0) {
+                        rowsHtml += `<tr>
+                            <td class="ps-4 fw-semibold text-dark">${name}</td>
+                            <td class="text-center">${data.machine_data[i]} minutos</td>
+                            <td class="text-center"><span class="badge bg-secondary rounded-pill">${data.machine_incidents[i]}</span></td>
+                            <td class="text-center">${data.machine_fault_status[i] ? '🔴<em>Detenido</em>' : '🟢<em>Corriendo</em>'}</td>
+                        </tr>`;
+                    }
+                });
+            } else {
+                rowsHtml = `<tr><td colspan="4" class="text-center py-4 text-muted">No hay datos.</td></tr>`;
+            }
+            tbody.innerHTML = rowsHtml;
+
+            // Actualizar Gráficas de forma segura
+            if (machinesChart) {
+                machinesChart.data.datasets[0].data = data.machine_data;
+                machinesChart.update();
+            }
+
+            if (typesChart) {
+                typesChart.data.datasets[0].data = data.pie_data;
+                typesChart.update();
+            }
             
-            const turnoActivo = this.getAttribute('data-shift');
-            aplicarFiltros(turnoActivo);
-        });
-    });
+        } catch (error) {
+            console.error('Error al refrescar:', error);
+        }
+    }
 </script>
 {% endblock %}

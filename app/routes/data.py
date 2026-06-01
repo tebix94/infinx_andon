@@ -1,4 +1,4 @@
-from flask import Blueprint, request, render_template, redirect, url_for
+from flask import Blueprint, request, render_template, redirect, jsonify
 from sqlalchemy import or_
 from app.models import Posts, Machines
 from datetime import datetime, timedelta
@@ -74,6 +74,9 @@ def metrics():
     last_end_time = None
 
     for post in posts:
+        # Build status map
+        if post.end_date == None:
+            machine_fault_status[post.machine_id - 1] = True
 
         # Start calculating the downtime of individual posts
         calc_start = max(post.start_date, datetime_start)
@@ -124,13 +127,23 @@ def metrics():
     if not pie_data:
         pie_labels = ["Sin incidentes"]
         pie_data = [0]
-    
-    # Build status map
+        
+    # Render data for client request by JS (Ajax)
+    if request.args.get('format') == 'json':
+        return jsonify({
+            'total_minutes': total_downtime,
+            'total_incidents': len(posts),
+            'top_downtime_machine': top_downtime_machine,
+            'machine_names': machine_names,
+            'machine_data': machine_downtimes,
+            'machine_incidents': machine_incidents,
+            'machine_fault_status': machine_fault_status,
+            'pie_labels': pie_labels,
+            'pie_data': pie_data,
+            }
+        )
 
-    for post in posts:
-        if post.end_date == None:
-            machine_fault_status[post.machine_id - 1] = True
-
+    # Render data for client request by URL
     return render_template(
         'metrics.html',
         total_minutes=total_downtime,
@@ -142,5 +155,4 @@ def metrics():
         machine_fault_status=machine_fault_status,
         pie_labels=pie_labels,
         pie_data=pie_data,
-        selected_date=date_base.strftime('%Y-%m-%d'),
     )
