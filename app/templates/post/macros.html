@@ -1,0 +1,37 @@
+{# MACRO REUTILIZABLE PARA LA PAGINACIÓN #}
+{% macro render_pagination(pagination, page_num) %}
+    {% if pagination and pagination.pages > 1 %}
+    <nav aria-label="Navegación de páginas" class="my-4">
+        <ul class="pagination justify-content-center shadow-sm">
+            
+            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                <a class="page-link border-secondary border-opacity-25" 
+                   href="{{ url_for('post.requests', page=pagination.prev_num, edit_id=request.args.get('edit_id')) if pagination.has_prev else '#' }}">
+                    <i class="bi bi-chevron-left"></i> Anterior
+                </a>
+            </li>
+
+            {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if page_num %}
+                    <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                        <a class="page-link border-secondary border-opacity-25 {% if page_num == pagination.page %}bg-dark border-dark text-white{% else %}text-secondary{% endif %}" 
+                           href="{{ url_for('post.requests', page=page_num, edit_id=request.args.get('edit_id')) }}">
+                            {{ page_num }}
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link border-secondary border-opacity-25">...</span></li>
+                {% endif %}
+            {% endfor %}
+
+            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                <a class="page-link border-secondary border-opacity-25" 
+                   href="{{ url_for('post.requests', page=pagination.next_num, edit_id=request.args.get('edit_id')) if pagination.has_next else '#' }}">
+                    Siguiente <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+            
+        </ul>
+    </nav>
+    {% endif %}
+{% endmacro %}

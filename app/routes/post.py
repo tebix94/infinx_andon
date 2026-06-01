@@ -21,20 +21,21 @@ def requests():
         db.joinedload(Posts.machine),
         db.joinedload(Posts.user_requester),
         db.joinedload(Posts.interruption_type)
-    ).paginate(page=page, per_page=10)
+    ).paginate(page=page, per_page=4)
 
     # Fetch data to be render as template context
     interruption_types = InterruptionTypes.query.all()    
     substations = Substations.query.all()
     devices = Devices.query.all()
+    devices_list = [d.to_dict() for d in devices]
     error_causes = ErrorCauses.query.all()
 
     return render_template('post/show_my_requests.html',
                            posts=posts_pagination,
                            pagination=posts_pagination,
-                           interruption_types=interruption_types,
+                           interruption_types=interrup  tion_types,
                            substations=substations,
-                           devices=devices,
+                           devices=devices_list,
                            error_causes=error_causes,
                            )
 

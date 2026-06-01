@@ -2,46 +2,10 @@
 
 {% block title %}Órdenes de trabajo{% endblock %}
 
-{# MACRO REUTILIZABLE PARA LA PAGINACIÓN #}
-{% macro render_pagination(pagination) %}
-    {% if pagination and pagination.pages > 1 %}
-    <nav aria-label="Navegación de páginas" class="my-4">
-        <ul class="pagination justify-content-center shadow-sm">
-            
-            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
-                <a class="page-link border-secondary border-opacity-25" 
-                   href="{{ url_for('post.requests', page=pagination.prev_num, edit_id=request.args.get('edit_id')) if pagination.has_prev else '#' }}">
-                    <i class="bi bi-chevron-left"></i> Anterior
-                </a>
-            </li>
-
-            {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-                {% if page_num %}
-                    <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
-                        <a class="page-link border-secondary border-opacity-25 {% if page_num == pagination.page %}bg-dark border-dark text-white{% else %}text-secondary{% endif %}" 
-                           href="{{ url_for('post.requests', page=page_num, edit_id=request.args.get('edit_id')) }}">
-                            {{ page_num }}
-                        </a>
-                    </li>
-                {% else %}
-                    <li class="page-item disabled"><span class="page-link border-secondary border-opacity-25">...</span></li>
-                {% endif %}
-            {% endfor %}
-
-            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
-                <a class="page-link border-secondary border-opacity-25" 
-                   href="{{ url_for('post.requests', page=pagination.next_num, edit_id=request.args.get('edit_id')) if pagination.has_next else '#' }}">
-                    Siguiente <i class="bi bi-chevron-right"></i>
-                </a>
-            </li>
-            
-        </ul>
-    </nav>
-    {% endif %}
-{% endmacro %}
-
+{% import 'post/macros.html' as function %}
 
 {% block content %}
+
 <div class="container mt-5">
     {% if not posts.items %}
         <div class="text-center py-5 my-5">
@@ -77,7 +41,7 @@
 
         {# RENDERIZADO DE PAGINACIÓN SUPERIOR #}
         <div class="mt-2 pb-1">
-            {{ render_pagination(pagination) }}
+            {{ function.render_pagination(pagination) }}
         </div>
 
         <div class="row row-cols-1 row-cols-md-2 g-4">
@@ -205,102 +169,21 @@
         
         {# RENDERIZADO DE PAGINACIÓN INFERIOR #}
         <div class="mt-4 pb-1">
-            {{ render_pagination(pagination) }}
+            {{ function.render_pagination(pagination) }}
         </div>
 
     {% endif %}
 </div>
 
+{% block script %}
+
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    // Mapeo dinámico de los dispositivos usando variables seguras desde Jinja
-    const devicesMap = [
-        {% for device in devices %}
-        {
-            id: {{ device.id|tojson }},
-            name: {{ device.name|tojson }},
-            substationId: {{ device.substation_id|tojson }}
-        }{% if not loop.last %},{% endif %}
-        {% endfor %}
-    ];
-
-    // Control dinámico de apertura de modales de Bootstrap
-    const modals = document.querySelectorAll('.close-order-modal-block');
-    modals.forEach(function(modal) {
-        modal.addEventListener('show.bs.modal', function () {
-            const machineId = modal.getAttribute('data-machine-id').toString().trim();
-            const substationSelect = modal.querySelector('.substation-select');
-            if (!substationSelect) return;
-
-            const options = substationSelect.querySelectorAll('option');
-            
-            options.forEach(function(option) {
-                // Mantener siempre visible y seleccionada por defecto la primera opción
-                if (option.value === "") {
-                    option.selected = true;
-                    return;
-                }
-
-                const optionMachineId = option.getAttribute('data-substation-machine-id').toString().trim();
-
-                // CONTROL CONTRA ID DE MÁQUINA INVÁLIDO (""):
-                // Si la orden no tiene máquina válida, muestra todas las subestaciones (Fallback seguro).
-                // Si la máquina es válida, filtra de forma estricta.
-                if (machineId === "" || optionMachineId === machineId) {
-                    option.style.display = 'block';
-                    option.disabled = false;
-                } else {
-                    option.style.display = 'none';
-                    option.disabled = true;
-                }
-            });
-
-            // Reseteo preventivo del dropdown secundario de dispositivos
-            const deviceSelect = modal.querySelector('.device-select');
-            if (deviceSelect) {
-                deviceSelect.innerHTML = '<option value="" disabled selected>-- Selecciona una subestación primero --</option>';
-                deviceSelect.setAttribute('disabled', 'disabled');
-            }
-        });
-    });
-
-    // Delegación de eventos para poblar dispositivos al cambiar de subestación
-    document.body.addEventListener('change', function (event) {
-        if (event.target.classList.contains('substation-select')) {
-            const substationSelect = event.target;
-            const selectedSubstationId = substationSelect.value.toString();
-            
-            const currentForm = substationSelect.closest('form');
-            if (!currentForm) return;
-
-            const deviceSelect = currentForm.querySelector('.device-select');
-            if (!deviceSelect) return;
-
-            deviceSelect.innerHTML = '';
-            
-            const defaultOption = document.createElement('option');
-            defaultOption.value = "";
-            defaultOption.disabled = true;
-            defaultOption.selected = true;
-            defaultOption.textContent = "-- Selecciona un dispositivo --";
-            deviceSelect.appendChild(defaultOption);
-
-            const filteredDevices = devicesMap.filter(d => d.substationId.toString() === selectedSubstationId);
-
-            if (filteredDevices.length > 0) {
-                deviceSelect.removeAttribute('disabled');
-                filteredDevices.forEach(device => {
-                    const option = document.createElement('option');
-                    option.value = device.id;
-                    option.textContent = device.name;
-                    deviceSelect.appendChild(option);
-                });
-            } else {
-                defaultOption.textContent = "-- No hay dispositivos en esta subestación --";
-                deviceSelect.setAttribute('disabled', 'disabled');
-            }
-        }
-    });
-});
+    // Inyectamos los datos como una variable global de JS
+    // Usamos el filtro 'tojson' de Jinja para convertir la lista a un array JS válido
+    const devicesMap = {{ devices|tojson }};
 </script>
+
+<script src="{{ url_for('static', filename='user_js/Modals.js') }}"></script>
+{% endblock %}
+
 {% endblock content %}

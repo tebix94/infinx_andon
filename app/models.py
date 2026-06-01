@@ -79,6 +79,13 @@ class Devices(db.Model):
         UniqueConstraint('name', 'substation_id', name='uq_device_per_substation'),
     )
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "substationId": self.substation_id  # Nota: usamos camelCase para JS
+        }
+
 class InterruptionTypes(db.Model):
     __tablename__ = 'interruption_types'
 
