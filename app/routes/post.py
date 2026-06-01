@@ -33,7 +33,7 @@ def requests():
     return render_template('post/show_my_requests.html',
                            posts=posts_pagination,
                            pagination=posts_pagination,
-                           interruption_types=interrup  tion_types,
+                           interruption_types=interruption_types,
                            substations=substations,
                            devices=devices_list,
                            error_causes=error_causes,

@@ -44,7 +44,7 @@
             {{ function.render_pagination(pagination) }}
         </div>
 
-        <div class="row row-cols-1 row-cols-md-2 g-4">
+        <div class="row row-cols-1 row-cols-md-2 g-4" id="requests-container">
             {% for post in posts.items %}
                 {% if not post.end_date %} 
                     {% set is_editing = (request.args.get('edit_id')|int == post.id) %}
@@ -181,6 +181,7 @@
     // Inyectamos los datos como una variable global de JS
     // Usamos el filtro 'tojson' de Jinja para convertir la lista a un array JS válido
     const devicesMap = {{ devices|tojson }};
+    const REQUESTS_URL = "{{ url_for('post.requests') }}";
 </script>
 
 <script src="{{ url_for('static', filename='user_js/Modals.js') }}"></script>
