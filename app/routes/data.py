@@ -64,6 +64,8 @@ def metrics():
 
     # Lists and variables for calculating invidivual posts downtime values
     machine_downtimes = [0] * len(machines)
+    machine_incidents = [0] * len(machines)
+    machine_fault_status = [False] * len(machines)
     top_downtime_machine = ''
     top_downtime = 0
 
@@ -88,6 +90,7 @@ def metrics():
 
         if post.machine_id is not None and 0 < post.machine_id <= len(machine_downtimes):
             machine_downtimes[post.machine_id - 1] += downtime_minutes
+            machine_incidents[post.machine_id - 1] += 1
 
         # Start accumulating the downtime of the whole post
         line_start = max(post.start_date, datetime_start)
@@ -121,14 +124,22 @@ def metrics():
     if not pie_data:
         pie_labels = ["Sin incidentes"]
         pie_data = [0]
+    
+    # Build status map
+
+    for post in posts:
+        if post.end_date == None:
+            machine_fault_status[post.machine_id - 1] = True
 
     return render_template(
         'metrics.html',
         total_minutes=total_downtime,
         total_incidents=len(posts),
         top_downtime_machine=top_downtime_machine,
-        bar_labels=machine_names,
-        bar_data=machine_downtimes,
+        machine_names=machine_names,
+        machine_data=machine_downtimes,
+        machine_incidents=machine_incidents,
+        machine_fault_status=machine_fault_status,
         pie_labels=pie_labels,
         pie_data=pie_data,
         selected_date=date_base.strftime('%Y-%m-%d'),

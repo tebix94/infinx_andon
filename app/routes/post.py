@@ -144,7 +144,7 @@ def close(post_id):
         
         return redirect(url_for('post.requests'))
     
-@bp.route('/history')
+@bp.route('/history/')
 def history():
     # 1. Obtener parámetros de paginación y filtros de la URL (Query Strings)
     page = request.args.get('page', 1, type=int)
