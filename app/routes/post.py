@@ -150,7 +150,7 @@ def history():
     # 1. Obtener parámetros de paginación y filtros de la URL (Query Strings)
     page = request.args.get('page', 1, type=int)
     status_filter = request.args.get('status', '')
-    machine_id_raw = request.args.get('machine_id', '')
+    machine_id_raw = request.args.get('machine_id', '') if request.args.get('id', '') == '' else request.args.get('id', '')
     interruption_type_id_raw = request.args.get('interruption_type_id', '')
     user_requester_id_raw = request.args.get('user_requester_id', '')
     user_assigned_id_raw = request.args.get('user_assigned_id', '')
@@ -203,8 +203,12 @@ def history():
         except ValueError:
             pass
 
-    if start_date_raw:
+    if start_date_raw and request.args.get('id', '') == '':
         start_date = datetime.strptime(start_date_raw, '%Y-%m-%d')
+        query = query.filter(Posts.start_date >= start_date)
+    else:
+        start_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        print(start_date)
         query = query.filter(Posts.start_date >= start_date)
         
     if end_date_raw:

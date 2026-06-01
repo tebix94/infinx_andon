@@ -109,8 +109,9 @@
                             {% if total_incidents != 0 %}
                                 {% for i in range(machine_names | length) %}
                                     {% if machine_incidents[i] != 0 %}
+                                        {% set url_args = {'id': i + 1} %}
                                         <tr>
-                                            <td class="ps-4 fw-semibold text-dark">{{ machine_names[i] }}</td>
+                                            <td class="ps-4 fw-semibold text-dark"><a href="{{ url_for('post.history', **url_args) }}">{{ machine_names[i] }}</a></td>
                                             <td class="text-center" id="table-machine-data-row">{{ machine_data[i] }} minutos</td>
                                             <td class="text-center">
                                                 <span class="badge bg-secondary rounded-pill"> {{ machine_incidents[i] }} </span>
@@ -167,11 +168,12 @@
 
             // Actualizar Tabla
             const tbody = document.getElementById('table-events');
+            const url = "{{ url_for('post.history') }}"
             if (data.total_incidents > 0) {
                 tbody.innerHTML = data.machine_names.map((name, i) => {
                     if (data.machine_incidents[i] > 0) {
                         return `<tr>
-                            <td class="ps-4 fw-semibold text-dark">${name}</td>
+                            <td class="ps-4 fw-semibold text-dark"><a href="${url}/?id=${i + 1}">${name}</a></td>
                             <td class="text-center">${data.machine_data[i]} minutos</td>
                             <td class="text-center"><span class="badge bg-secondary rounded-pill">${data.machine_incidents[i]}</span></td>
                             <td class="text-center">${data.machine_fault_status[i] ? '🔴<em>Detenido</em>' : '🟢<em>Corriendo</em>'}</td>
