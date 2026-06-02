@@ -271,7 +271,7 @@
                     <div class="modal-content shadow-lg border-0">
                         <div class="modal-header {% if post.end_date %}bg-dark{% else %}bg-warning text-dark{% endif %} text-white">
                             <h5 class="modal-title fw-bold">
-                                <i class="bi bi-file-earmark-text-fill me-2"></i>Detalles de Orden REQ#{{ post.id }}
+                                <i class="bi bi-file-earmark-text-fill me-2"></i>Detalles de la orden #{{ post.id }}
                             </h5>
                             <button type="button" class="btn-close {% if post.end_date %}btn-close-white{% endif %}" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
@@ -389,16 +389,39 @@
 </div>
 
 <script>
+document.addEventListener("DOMContentLoaded", () => {
+    // 1. Obtener parámetros de la URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const idParam = urlParams.get('id');
+    const startDateParam = urlParams.get('start_date');
+    const endDateParam = urlParams.get('end_date');
+
+    // 2. Si existe un valor en la URL, actualizar el input
+    if (startDateParam) {
+        const startDateInput = document.querySelector('input[name="start_date"]');
+        const endDateInput = document.querySelector('input[name="end_date"]');
+        if (startDateInput) {
+            startDateInput.value = startDateParam;
+            endDateInput.value = startDateParam;
+        }
+    }
+
+    if (idParam){
+        const machineSelect = document.querySelector('select[name=machine_id]');
+        if (machineSelect) {
+            machineSelect.value = idParam;
+        }
+    }
+});
+
+// 3. Función de exportación (la que ya tenías, funciona perfecto así)
 function exportWithFilters(event) {
     event.preventDefault();
     
-    // 1. Obtener todos los parámetros de la URL actual (?status=closed&machine_id=2...)
+    // Obtiene todo lo que está en la URL (incluyendo lo que el usuario haya seleccionado en el input)
     const currentParams = window.location.search;
-    
-    // 2. Construir la ruta base de exportación usando Jinja
     const exportUrl = "{{ url_for('post.export') }}";
     
-    // 3. Redirigir concatenando los filtros activos
     window.location.href = exportUrl + currentParams;
 }
 </script>
