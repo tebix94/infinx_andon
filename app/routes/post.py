@@ -1,5 +1,5 @@
 from flask import Blueprint, request, render_template, flash, redirect, url_for, make_response
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 from sqlalchemy.orm import joinedload
 from app.schemas import CreatePostSchema
 from app.extensions import db
@@ -203,17 +203,30 @@ def history():
         except ValueError:
             pass
 
-    if start_date_raw and request.args.get('id', '') == '':
-        start_date = datetime.strptime(start_date_raw, '%Y-%m-%d')
-        query = query.filter(Posts.start_date >= start_date)
-    else:
-        start_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        print(start_date)
+    # Id parameter is inserted by JS Ajax at the same post.history URL
+    # Here, the if statements sepparates the cases where URL call is done by clicking a href at the template or by JS Ajax
+    id_param = request.args.get('id')
+
+    if id_param is None: # If request has been done by the user
+        if start_date_raw == '':
+            pass
+        else:
+            start_date = datetime.strptime(start_date_raw, '%Y-%m-%d').replace(hour=0, minute=0, second=0, microsecond=0)
+            query = query.filter(Posts.start_date >= start_date)
+    else: # If request has been done by JS Ajax
+        date = datetime.strptime(request.args.get('start_date', ''), '%Y-%m-%d')
+        post = Posts.query.filter(and_(Posts.machine_id == id_param, Posts.start_date >= date)).first()
+        start_date = post.start_date.replace(hour=0, minute=0, second=0, microsecond=0)
         query = query.filter(Posts.start_date >= start_date)
         
-    if end_date_raw:
-        # Sumamos 1 día para incluir los eventos ocurridos dentro del último día seleccionado
-        end_date = datetime.strptime(end_date_raw, '%Y-%m-%d') + timedelta(days=1)
+    if id_param is None: # If request has been done by the user
+        if end_date_raw == '':
+            pass
+        else:
+            end_date = datetime.strptime(end_date_raw, '%Y-%m-%d') + timedelta(days=1)
+            query = query.filter(Posts.start_date < end_date)
+    else: # If request has been done by JS Ajax
+        end_date = start_date + timedelta(days=1) 
         query = query.filter(Posts.start_date < end_date)
 
     # 7. Ejecutar paginación ordenando por el más reciente primero

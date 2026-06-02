@@ -65,6 +65,7 @@ def metrics():
     # Lists and variables for calculating invidivual posts downtime values
     machine_downtimes = [0] * len(machines)
     machine_incidents = [0] * len(machines)
+    machines_incidents_startdate = [0] * len(machines)
     machine_fault_status = [False] * len(machines)
     top_downtime_machine = ''
     top_downtime = 0
@@ -74,13 +75,19 @@ def metrics():
     last_end_time = None
 
     for post in posts:
+        # Correct index value, all machine related lists starts at position 0.
+        idx = post.machine_id - 1
+
         # Build status map
         if post.end_date == None:
-            machine_fault_status[post.machine_id - 1] = True
+            machine_fault_status[idx] = True
 
         # Start calculating the downtime of individual posts
         calc_start = max(post.start_date, datetime_start)
 
+        # Store the date of the day that event occurs, this will be forwarded to the metrics template, later JS
+        # will use this value to sent it back to the backend as history view request argument
+        machines_incidents_startdate[idx] = post.start_date.date() if machines_incidents_startdate[idx] == 0 else machines_incidents_startdate[idx]
         if post.end_date:
             calc_end = min(post.end_date, datetime_end)
         else:
@@ -92,8 +99,8 @@ def metrics():
             downtime_minutes = 0
 
         if post.machine_id is not None and 0 < post.machine_id <= len(machine_downtimes):
-            machine_downtimes[post.machine_id - 1] += downtime_minutes
-            machine_incidents[post.machine_id - 1] += 1
+            machine_downtimes[idx] += downtime_minutes
+            machine_incidents[idx] += 1
 
         # Start accumulating the downtime of the whole post
         line_start = max(post.start_date, datetime_start)
@@ -127,6 +134,8 @@ def metrics():
     if not pie_data:
         pie_labels = ["Sin incidentes"]
         pie_data = [0]
+
+    print(machines_incidents_startdate)
         
     # Render data for client request by JS (Ajax)
     if request.args.get('format') == 'json':
@@ -137,6 +146,7 @@ def metrics():
             'machine_names': machine_names,
             'machine_data': machine_downtimes,
             'machine_incidents': machine_incidents,
+            'machine_incidents_startdate': machines_incidents_startdate, 
             'machine_fault_status': machine_fault_status,
             'pie_labels': pie_labels,
             'pie_data': pie_data,
@@ -152,6 +162,7 @@ def metrics():
         machine_names=machine_names,
         machine_data=machine_downtimes,
         machine_incidents=machine_incidents,
+        machine_incidents_startdate=machines_incidents_startdate,
         machine_fault_status=machine_fault_status,
         pie_labels=pie_labels,
         pie_data=pie_data,
