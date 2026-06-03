@@ -15,6 +15,12 @@
                 <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
                 {% endfor %}
             </select>
+            <select id="filter-machine" class="form-select shadow-sm" style="width: 200px;">
+                <option value="all">Todas las máquinas</option>
+                {% for m in machines %}
+                <option value="{{ m.id }}">{{ m.name }}</option>
+                {% endfor %}
+            </select>
 
             <select id="filter-month" class="form-select shadow-sm" style="width: 160px;">
                 <option value="">Año completo</option>
@@ -63,13 +69,17 @@
     async function actualizarPerformance() {
         const year = document.getElementById('filter-year').value;
         const month = document.getElementById('filter-month').value;
+        const machineId = document.getElementById('filter-machine').value; // <--- AGREGA ESTO
         const loader = document.getElementById('chart-loader');
         
         loader.classList.remove('d-none');
 
         try {
-            const response = await fetch(`/performance?year=${year}&month=${month}&format=json`);
+            // <--- ACTUALIZA LA URL AQUÍ
+            const response = await fetch(`/performance?year=${year}&month=${month}&machine_id=${machineId}&format=json`);
             const data = await response.json();
+        
+        // ... resto del código igual
 
             if (performanceChart) {
                 performanceChart.destroy();

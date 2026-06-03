@@ -175,6 +175,7 @@ def performance():
     # Fetch arguments from the front end request
     year = request.args.get('year', datetime.now().year, type=int)
     month = request.args.get('month', None, type=int)
+    machine_id = request.args.get('machine_id', 'all')
     format_type = request.args.get('format', 'html')
 
     # Use calendar module to define last day of the month
@@ -187,9 +188,14 @@ def performance():
         end_date = datetime(year, 12, 31, 23, 59, 59)
 
     # Fetch machines objects from database
-    machines = Machines.query.options(
-        db.joinedload(Machines.posts)
-    )
+    query = Machines.query.options(db.joinedload(Machines.posts))
+    if machine_id != 'all':
+        query = query.filter(Machines.id == machine_id)
+    
+    # List of machines filtered by frontend machine selector filter
+    machines = query.all()
+    # Get a list of all machines for rendering the frontend
+    all_machines = Machines.query.all()
 
     # Initialize chart datasets
     datasets = []
@@ -200,6 +206,16 @@ def performance():
     while current <= end_date:
         days_list.append(current.strftime('%Y-%m-%d'))
         current += timedelta(days=1)
+
+    # Verify the dates that contains data
+    days_with_data = set()
+    for machine in machines:
+        for post in machine.posts:
+            if start_date <= post.start_date <= end_date:
+                days_with_data.add(post.start_date.strftime('%Y-%m-%d'))
+
+    # Exclude days without data
+    days_list = sorted([day for day in days_list if day in days_with_data])
 
     # Loop on each post from each machine to sum the downtime duration in minutes
     for machine in machines:
@@ -240,4 +256,5 @@ def performance():
     return render_template('data/performance.html', 
                            years=range(2023, datetime.now().year + 1),
                            current_year=year,
-                           current_month=month)
+                           current_month=month,
+                           machines=all_machines,)
