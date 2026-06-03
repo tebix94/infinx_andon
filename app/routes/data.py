@@ -2,6 +2,8 @@ from flask import Blueprint, request, render_template, redirect, jsonify
 from sqlalchemy import or_
 from app.models import Posts, Machines
 from datetime import datetime, timedelta
+from app.extensions import db
+import calendar
 
 bp = Blueprint('data', __name__)
 
@@ -155,7 +157,7 @@ def metrics():
 
     # Render data for client request by URL
     return render_template(
-        'metrics.html',
+        'data/metrics.html',
         total_minutes=total_downtime,
         total_incidents=len(posts),
         top_downtime_machine=top_downtime_machine,
@@ -167,3 +169,75 @@ def metrics():
         pie_labels=pie_labels,
         pie_data=pie_data,
     )
+
+@bp.route('/performance')
+def performance():
+    # Fetch arguments from the front end request
+    year = request.args.get('year', datetime.now().year, type=int)
+    month = request.args.get('month', None, type=int)
+    format_type = request.args.get('format', 'html')
+
+    # Use calendar module to define last day of the month
+    if month:
+        start_date = datetime(year, month, 1)
+        last_day = calendar.monthrange(year, month)[1]
+        end_date = datetime(year, month, last_day, 23, 59, 59)
+    else:
+        start_date = datetime(year, 1, 1)
+        end_date = datetime(year, 12, 31, 23, 59, 59)
+
+    # Fetch machines objects from database
+    machines = Machines.query.options(
+        db.joinedload(Machines.posts)
+    )
+
+    # Initialize chart datasets
+    datasets = []
+
+    # Create date list just for rendering days at front end
+    days_list = []
+    current = start_date
+    while current <= end_date:
+        days_list.append(current.strftime('%Y-%m-%d'))
+        current += timedelta(days=1)
+
+    # Loop on each post from each machine to sum the downtime duration in minutes
+    for machine in machines:
+        # Dictionary format {'date string': 'minutes integer value'}
+        downtime_map = {day: 0 for day in days_list}
+
+        # Filter posts that matches the template date selectors and the machine
+        posts = [post for post in machine.posts if start_date <= post.start_date <= end_date]
+
+        # Get downtime per post and sum posts downtimes that belongs to the same day
+        for post in posts:
+            # Get time string from date time to be used as key inside the downtime map
+            date_str = post.start_date.strftime('%Y-%m-%d')
+
+            # Get post time duration
+            time_delta = post.end_date - post.start_date if post.end_date else 0
+            time_delta = time_delta.total_seconds() / 60 # Convert time period from datetime to minutes as integer
+            
+            # Add delta time to the each date key in the downtime ma
+            downtime_map[date_str] += time_delta
+
+        # Convert downtime structure to flat list
+        datapoints = [downtime_map[day] for day in days_list]
+
+        datasets.append({
+            'label': machine.name,
+            'data': datapoints,
+            'fill': False,
+            'tension': 0.3
+        })
+
+    if format_type == 'json':
+        return jsonify({
+            'labels': days_list,
+            'datasets': datasets
+        })
+
+    return render_template('data/performance.html', 
+                           years=range(2023, datetime.now().year + 1),
+                           current_year=year,
+                           current_month=month)

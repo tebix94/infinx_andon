@@ -215,7 +215,6 @@ def history():
             query = query.filter(Posts.start_date >= start_date)
     else: # If request has been done by JS Ajax
         date = datetime.strptime(request.args.get('start_date', ''), '%Y-%m-%d')
-        post = Posts.query.filter(and_(Posts.machine_id == id_param, Posts.start_date >= date)).first()
         start_date = date.replace(hour=0, minute=0, second=0, microsecond=0)
         query = query.filter(Posts.start_date >= start_date)
         

@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}Rendimiento Histórico{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 mt-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h1 class="h3 fw-bold text-dark mb-1">Tendencia de tiempo inactivo</h1>
+        </div>
+        
+        <div class="d-flex align-items-center gap-2">
+            <select id="filter-year" class="form-select shadow-sm" style="width: 120px;">
+                {% for y in years %}
+                <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+
+            <select id="filter-month" class="form-select shadow-sm" style="width: 160px;">
+                <option value="">Año completo</option>
+                <option value="1">Enero</option>
+                <option value="2">Febrero</option>
+                <option value="3">Marzo</option>
+                <option value="4">Abril</option>
+                <option value="5">Mayo</option>
+                <option value="6">Junio</option>
+                <option value="7">Julio</option>
+                <option value="8">Agosto</option>
+                <option value="9">Septiembre</option>
+                <option value="10">Octubre</option>
+                <option value="11">Noviembre</option>
+                <option value="12">Diciembre</option>
+            </select>
+            
+            <button onclick="actualizarPerformance()" class="btn btn-primary shadow-sm">
+                <i class="bi bi-filter"></i> Filtrar
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm border-0 rounded-3">
+                <div class="card-header bg-white border-0 pt-3 d-flex justify-content-between">
+                    <h6 class="fw-bold"><i class="bi bi-graph-up text-primary me-2"></i>Minutos de interrupción de equipo por fecha</h6>
+                    <div id="chart-loader" class="spinner-border spinner-border-sm text-primary d-none"></div>
+                </div>
+                <div class="card-body p-4">
+                    <div style="height: 450px;">
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let performanceChart;
+
+    async function actualizarPerformance() {
+        const year = document.getElementById('filter-year').value;
+        const month = document.getElementById('filter-month').value;
+        const loader = document.getElementById('chart-loader');
+        
+        loader.classList.remove('d-none');
+
+        try {
+            const response = await fetch(`/performance?year=${year}&month=${month}&format=json`);
+            const data = await response.json();
+
+            if (performanceChart) {
+                performanceChart.destroy();
+            }
+
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            
+            // Paleta de colores para las líneas
+            const colors = ['#0d6efd', '#dc3545', '#198754', '#ffc107', '#0dcaf0', '#6610f2', '#fd7e14'];
+
+            performanceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: data.datasets.map((ds, index) => ({
+                        ...ds,
+                        borderColor: colors[index % colors.length],
+                        backgroundColor: colors[index % colors.length] + '20', // Transparencia
+                        pointRadius: 3,
+                        pointHoverRadius: 6,
+                        borderWidth: 2
+                    }))
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { usePointStyle: true, padding: 20 }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${context.raw} min`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Minutos' },
+                            grid: { color: '#f0f0f0' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error:', error);
+        } finally {
+            loader.classList.add('d-none');
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        actualizarPerformance();
+    });
+
+    function getBorderColor(index) {
+    const colors = ['#0d6efd', '#dc3545', '#198754', '#ffc107', '#0dcaf0', '#6610f2'];
+    return colors[index % colors.length];
+    }
+</script>
+{% endblock %}
