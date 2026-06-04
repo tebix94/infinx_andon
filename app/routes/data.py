@@ -231,8 +231,7 @@ def performance():
             date_str = post.start_date.strftime('%Y-%m-%d')
 
             # Get post time duration
-            time_delta = post.end_date - post.start_date if post.end_date else 0
-            time_delta = time_delta.total_seconds() / 60 # Convert time period from datetime to minutes as integer
+            time_delta = (post.end_date - post.start_date).total_seconds() / 60 if post.end_date else 0
             
             # Add delta time to the each date key in the downtime ma
             downtime_map[date_str] += time_delta
