@@ -8,8 +8,16 @@ from flask_login import current_user, login_required
 from datetime import datetime, timedelta
 import pandas as pd
 import io
+from app.telegram_bot import send_telegram_notification
+import os
+from threading import Thread
+import html
 
 bp = Blueprint('post', __name__)
+
+# Load environment variables
+TELEGRAM_INFINX_GROUP_ID = os.environ.get('TELEGRAM_INFINX_GROUP_ID')
+TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 
 @bp.route('/requests/')
 def requests():
@@ -69,7 +77,32 @@ def create():
             
             db.session.add(new_post)
             db.session.commit()
+
             
+            if TELEGRAM_INFINX_GROUP_ID:
+                try:
+                    # Fetch the machine name using the relationship defined in your model
+                    machine_name = new_post.machine.name if new_post.machine else "Sin nombre"
+                    
+                    message = (
+                        f'⚠️ <b>Nueva orden de trabajo #{new_post.id}</b> ⚠️\n'
+                        f'Máquina: {html.escape(machine_name)}\n'
+                        f'Requisitor: [{new_post.user_requester.employee_number[1:-1]}] {new_post.user_requester.first_name} {new_post.user_requester.last_name}\n'
+                        f'Tipo de falla: {html.escape(new_post.interruption_type.name)}\n'
+                        f'Fecha y hora de apertura: {new_post.start_date.strftime("%Y-%m-%d %H:%M:%S")}\n'
+                        f'Descripción: {html.escape(new_post.description[:50])}...' # Truncate if too long
+                    )
+                    
+                    thread = Thread(
+                        target=send_telegram_notification,
+                        args=(TELEGRAM_BOT_TOKEN, TELEGRAM_INFINX_GROUP_ID, message)
+                    )
+                    thread.start()
+                except Exception as e:
+                    flash('Falla al generar o enviar mensaje a Telegram API.', 'warning')
+                    print(e)
+                    return redirect(url_for('post.create'))
+
             flash('¡Tu solicitud se ha creado con éxito!', 'success')
             return redirect(url_for('post.requests'))
             
@@ -104,8 +137,29 @@ def delete(post_id):
     post = Posts.query.get_or_404(post_id)
 
     try:
+        id = post.id
+        machine_name = post.machine.name
+
         db.session.delete(post)
         db.session.commit()
+
+        if TELEGRAM_INFINX_GROUP_ID:
+                try:  
+                    message = (
+                        f'🛑 <b>Orden de trabajo #{id} ha sido ELIMINADA</b> 🛑\n'
+                        f'Máquina: {html.escape(machine_name)}\n'
+                    )
+                    
+                    thread = Thread(
+                        target=send_telegram_notification,
+                        args=(TELEGRAM_BOT_TOKEN, TELEGRAM_INFINX_GROUP_ID, message)
+                    )
+                    thread.start()
+                except Exception as e:
+                    flash('Falla al generar o enviar mensaje a Telegram API.', 'warning')
+                    print(e)
+                    return redirect(url_for('post.requests'))
+
 
         flash('La orden ha sido eliminada exitosamente', 'success')
 
@@ -136,6 +190,26 @@ def close(post_id):
                 return redirect(url_for('post.requests'))
 
             post.user_assigned_id = assigned_user.id
+
+            if TELEGRAM_INFINX_GROUP_ID:
+                try:  
+                    message = (
+                        f'✅ <b>Orden de trabajo #{post.id} ha sido CERRADA</b> ✅\n'
+                        f'Máquina: {html.escape(post.machine.name)}\n'
+                        f'Cerrado por: [{post.user_assigned.employee_number[1:-1]}] {post.user_assigned.first_name} {post.user_assigned.last_name}\n'
+                        f'Fecha y hora de cierre: {post.end_date.strftime("%Y-%m-%d %H:%M:%S")}\n'
+                        f'Comentario de cierre: {html.escape(post.resolution_comment[:50])}...' # Truncate if too long
+                    )
+                    
+                    thread = Thread(
+                        target=send_telegram_notification,
+                        args=(TELEGRAM_BOT_TOKEN, TELEGRAM_INFINX_GROUP_ID, message)
+                    )
+                    thread.start()
+                except Exception as e:
+                    flash('Falla al generar o enviar mensaje a Telegram API.', 'warning')
+                    print(e)
+                    return redirect(url_for('post.requests'))
 
             db.session.commit()
             flash('La orden se ha cerrado exitosamente', 'success')
