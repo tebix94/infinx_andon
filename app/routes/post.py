@@ -16,6 +16,7 @@ import html
 bp = Blueprint('post', __name__)
 
 # Load environment variables
+ENABLE_TELEGRAM = os.environ.get('ENABLE_TELEGRAM')
 TELEGRAM_INFINX_GROUP_ID = os.environ.get('TELEGRAM_INFINX_GROUP_ID')
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 
@@ -79,7 +80,7 @@ def create():
             db.session.commit()
 
             
-            if TELEGRAM_INFINX_GROUP_ID:
+            if TELEGRAM_INFINX_GROUP_ID and ENABLE_TELEGRAM == 'YES':
                 try:
                     # Fetch the machine name using the relationship defined in your model
                     machine_name = new_post.machine.name if new_post.machine else "Sin nombre"
@@ -143,7 +144,7 @@ def delete(post_id):
         db.session.delete(post)
         db.session.commit()
 
-        if TELEGRAM_INFINX_GROUP_ID:
+        if TELEGRAM_INFINX_GROUP_ID and ENABLE_TELEGRAM == 'YES':
                 try:  
                     message = (
                         f'🛑 <b>Orden de trabajo #{id} ha sido ELIMINADA</b> 🛑\n'
@@ -191,7 +192,7 @@ def close(post_id):
 
             post.user_assigned_id = assigned_user.id
 
-            if TELEGRAM_INFINX_GROUP_ID:
+            if TELEGRAM_INFINX_GROUP_ID and ENABLE_TELEGRAM == 'YES':
                 try:  
                     message = (
                         f'✅ <b>Orden de trabajo #{post.id} ha sido CERRADA</b> ✅\n'
