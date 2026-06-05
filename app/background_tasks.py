@@ -43,7 +43,7 @@ def run_background_tasks(scheduler):
                     
                     for post in machine_posts:
                         if post.end_date:
-                            total_downtime += post.duration
+                            total_downtime += int((post.end_date - post.start_date).total_seconds() / 60)
                         else:
                             total_downtime += int((datetime.now() - post.start_date).total_seconds() / 60)
 
