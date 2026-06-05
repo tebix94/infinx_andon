@@ -84,14 +84,15 @@ def create():
                 try:
                     # Fetch the machine name using the relationship defined in your model
                     machine_name = new_post.machine.name if new_post.machine else "Sin nombre"
+                    description = new_post.description if new_post.description else 'Sin comentarios adicionales'  
                     
                     message = (
                         f'⚠️ <b>Nueva orden de trabajo #{new_post.id}</b> ⚠️\n'
                         f'Máquina: {html.escape(machine_name)}\n'
                         f'Requisitor: [{new_post.user_requester.employee_number[1:-1]}] {new_post.user_requester.first_name} {new_post.user_requester.last_name}\n'
                         f'Tipo de falla: {html.escape(new_post.interruption_type.name)}\n'
-                        f'Fecha y hora de apertura: {new_post.start_date.strftime("%Y-%m-%d %H:%M:%S")}\n'
-                        f'Descripción: {html.escape(new_post.description[:50])}...' # Truncate if too long
+                        f'Fecha y hora de apertura: {new_post.start_date.strftime("%Y-%m-%d %H:%M:%S")} horas\n'
+                        f'Descripción:\n{html.escape(description)}' # Truncate if too long
                     )
                     
                     thread = Thread(
@@ -182,7 +183,7 @@ def close(post_id):
             post.error_cause_id = request.form.get('error_cause_id')
             post.resolution_comment = request.form.get('resolution_comment')
             post.end_date = datetime.now()
-            post.duration = post.end_date - post.start_date
+            post.duration = int((post.end_date - post.start_date).total_seconds() / 60)
 
             assigned_user = Users.query.filter_by(employee_number=employee_number).first()
 
@@ -193,15 +194,19 @@ def close(post_id):
 
             post.user_assigned_id = assigned_user.id
 
+            db.session.commit()
+            flash('La orden se ha cerrado exitosamente', 'success')
+
             if TELEGRAM_INFINX_GROUP_ID and ENABLE_TELEGRAM == 'YES':
-                try:  
+                try:
+                    resolution_comment = post.resolution_comment if post.resolution_comment else 'Sin comentarios adicionales'  
                     message = (
                         f'✅ <b>Orden de trabajo #{post.id} ha sido CERRADA</b> ✅\n'
                         f'Máquina: {html.escape(post.machine.name)}\n'
-                        f'Tiempo detenido: {int(post.duration.total_seconds() / 60)} minutos'
                         f'Cerrado por: [{post.user_assigned.employee_number[1:-1]}] {post.user_assigned.first_name} {post.user_assigned.last_name}\n'
-                        f'Fecha y hora de cierre: {post.end_date.strftime("%Y-%m-%d %H:%M:%S")}\n'
-                        f'Comentario de cierre: {html.escape(post.resolution_comment[:50])}...' # Truncate if too long
+                        f'Fecha y hora de cierre: {post.end_date.strftime("%Y-%m-%d %H:%M:%S")} horas\n'
+                        f'Tiempo detenido: {post.duration} minutos\n'
+                        f'Comentario de cierre:\n{html.escape(resolution_comment)}' # Truncate if too long
                     )
                     
                     thread = Thread(
@@ -213,11 +218,10 @@ def close(post_id):
                     flash('Falla al generar o enviar mensaje a Telegram API.', 'warning')
                     print(e)
                     return redirect(url_for('post.requests'))
-
-            db.session.commit()
-            flash('La orden se ha cerrado exitosamente', 'success')
-        except Exception:
+                
+        except Exception as e:
             db.session.rollback()
+            print(e)
             flash('Ocurrió un error al intentar finalizar cerrar la orden')
         
         return redirect(url_for('post.requests'))
