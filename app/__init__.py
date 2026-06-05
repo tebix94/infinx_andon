@@ -6,9 +6,11 @@ from dotenv import load_dotenv
 # Import objects and methods
 from flask import Flask
 from .extensions import db
+from werkzeug.serving import is_running_from_reloader
 
-# Import scheduler
+# Import scheduler and related modules
 from flask_apscheduler import APScheduler
+from app.background_tasks import run_background_tasks
 
 # Import routes
 from app.routes.base import bp as bp_home
@@ -23,11 +25,6 @@ load_dotenv()
 scheduler = APScheduler()
 
 def start_app():
-    # Load environment variables for Telegram API
-    ENABLE_TELEGRAM = os.environ.get('ENABLE_TELEGRAM')
-    TELEGRAM_INFINX_GROUP_ID = os.environ.get('TELEGRAM_INFINX_GROUP_ID')
-    TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
-
     # Create backend instance
     app = Flask(__name__, static_folder='static', template_folder='templates')
 
@@ -51,17 +48,8 @@ def start_app():
     app.register_blueprint(bp_data)
   
     # Start background tasks
-    scheduler.start()
-
-    if ENABLE_TELEGRAM == 'YES':
-        with app.app_context():
-            scheduler.add_job(
-                id='telegram_update_report',
-                func='app.background_tasks:background_task_telegram_status_report',
-                args=[app, TELEGRAM_BOT_TOKEN, TELEGRAM_INFINX_GROUP_ID],
-                trigger='cron',
-                minute=0,    # Run exactly at the 0th minute of every hour
-                second=0     # Optional: ensures it runs at the very start of the minute
-            )
+    if not is_running_from_reloader():
+        scheduler.start()
+        run_background_tasks(scheduler)
         
     return app
