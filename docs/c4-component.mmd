@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor':'#fb923c','secondaryColor':'#818cf8','tertiaryColor':'#4ade80','lineColor':'#334155'}}}%%
+C4Component
+    title Infinx Andon System - Component Diagram
+
+    Person(leaders, "Operations leaders", "Create and track work orders")
+    Person(technicians, "Maintenance technicians", "Close work orders and update statuses")
+    Person(engineers, "Engineering team", "Analyze downtime metrics and equipment performance")
+    Person(supervisors, "Staff team", "Export reports and access system data")
+
+    Container(webapp, "Flask Web App", "Python / Flask", "Handles HTTP requests, renders pages, validates forms, and coordinates workflows.")
+
+    System_Ext(database, "SQLite Database", "Stores users, machines, posts, interruptions, devices, substations, and history.")
+    System_Ext(telegram, "Telegram API", "Sends alert and status messages to group chats.")
+    System_Ext(filesystem, "Local Filesystem", "Stores lock files used by background task scheduling.")
+
+    Container_Boundary(webappBoundary, "Flask Web App") {
+        Component(auth, "Authentication & User Management", "Python module", "Handles signup and user validation.")
+        Component(workorders, "Work Order Management", "Python module", "Creates, updates, closes, deletes, and lists work orders.")
+        Component(metrics, "Metrics & Reporting", "Python module", "Generates downtime and performance data for charts and reports.")
+        Component(home, "Dashboard & Status", "Python module", "Renders the home screen and active machine status.")
+        Component(validation, "Request Validation", "Pydantic schemas", "Validates form input for new users and work orders.")
+        Component(notification, "Telegram Notification Service", "Python module", "Formats and sends Telegram messages for work order events.")
+        Component(scheduler, "Background Task Scheduler", "Flask-APScheduler", "Schedules hourly status reports and coordinates lock-file control.")
+        Component(persistence, "Persistence API", "SQLAlchemy models", "Reads and writes application data to SQLite.")
+    }
+
+    Rel(leaders, workorders, "Uses web UI to create and view orders")
+    Rel(technicians, workorders, "Uses web UI to close and manage orders")
+    Rel(engineers, metrics, "Uses web UI to analyze downtime data")
+    Rel(supervisors, metrics, "Uses web UI to export report data")
+    Rel(engineers, home, "Views dashboard status")
+    Rel(supervisors, home, "Views dashboard status")
+
+    Rel(workorders, validation, "Validates request payload")
+    Rel(auth, validation, "Validates signup data")
+    Rel(workorders, persistence, "Reads and writes orders and users")
+    Rel(metrics, persistence, "Reads aggregated historical data")
+    Rel(home, persistence, "Reads current active machine status")
+    Rel(auth, persistence, "Reads and writes user records")
+
+    Rel(workorders, notification, "Triggers Telegram alerts for order events")
+    Rel(notification, telegram, "Sends alert messages")
+    Rel(scheduler, notification, "Triggers scheduled status reports")
+    Rel(scheduler, filesystem, "Checks and updates lock file")
+    Rel(notification, filesystem, "Uses lock file state for deduplication if needed")
+    Rel(persistence, database, "Stores application data")
+    Rel(notification, telegram, "Sends messages to group chat")

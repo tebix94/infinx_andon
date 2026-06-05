@@ -1,0 +1,33 @@
+---
+config:
+  layout: elk
+  direction: LR
+---
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor':'#fb923c','secondaryColor':'#818cf8','tertiaryColor':'#4ade80','lineColor':'#334155'}}}%%
+C4Context
+    title Infinx Andon System - Context Diagram
+
+    Boundary(users, "Users") {
+        Person(leaders, "Operations leaders", "Create work orders")
+        Person(technicians, "Maintenance technicians", "Close work orders")
+        Person(engineers, "Engineering team", "Analyze metrics & performance")
+        Person(supervisors, "Staff team", "Download data exports")
+    }
+    
+    System(system, "Infinx Andon Web App", "Flask-based application for production issue reporting, status tracking, and metrics dashboards.")
+
+    Boundary(external, "External Systems") {
+        System_Ext(database, "SQLite Database", "Persists users, work orders, machines, interruptions, devices, and history.")
+        System_Ext(filesystem, "Local Filesystem", "Lock files for scheduled task deduplication.")
+        System_Ext(telegram, "Telegram API", "Sends work order alerts and hourly equipment status reports.")
+    }
+
+    Rel(leaders, system, "Creates requests")
+    Rel(technicians, system, "Closes requests")
+    Rel(engineers, system, "Views metrics & performance")
+    Rel(supervisors, system, "Downloads data")
+    Rel(system, database, "Reads & writes data")
+    Rel(system, filesystem, "Manages lock file")
+    Rel(system, telegram, "Sends alerts & reports")
+    Rel(telegram, engineers, "Receives status updates")
+    Rel(telegram, supervisors, "Receives status updates")

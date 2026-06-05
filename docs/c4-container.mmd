@@ -1,0 +1,26 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor':'#fb923c','secondaryColor':'#818cf8','tertiaryColor':'#4ade80','lineColor':'#334155'}}}%%
+C4Container
+    title Infinx Andon System - Container Diagram
+
+    Person(leaders, "Operations leaders", "Creates and tracks work orders")
+    Person(technicians, "Maintenance technicians", "Closes work orders and updates statuses")
+    Person(engineers, "Engineering team", "Analyzes downtime metrics and equipment performance")
+    Person(supervisors, "Staff team", "Exports reports and views system data")
+
+    Container(webapp, "Flask Web App", "Python / Flask", "Handles HTTP requests, serves templates, validates input, and coordinates user workflows for work orders, metrics, and data export.")
+    Container(scheduler, "Scheduler & Background Tasks", "Flask-APScheduler", "Schedules hourly status reports, manages background notification jobs, and ensures single-report execution via lock file.")
+    Container(notification, "Telegram Notification Service", "Python module", "Formats and sends messages to Telegram for new orders, closures, deletions, and periodic status reports.")
+    ContainerDb(database, "SQLite Database", "SQLite", "Stores user accounts, machines, posts, interruption types, devices, substations, and historical data.")
+    Container(filesystem, "Local Filesystem", "File storage", "Stores lock files used by scheduled background tasks.")
+    System_Ext(telegram, "Telegram API", "External messaging service used to send alerts and status reports.")
+
+    Rel(leaders, webapp, "Uses web UI")
+    Rel(technicians, webapp, "Uses web UI")
+    Rel(engineers, webapp, "Uses web UI")
+    Rel(supervisors, webapp, "Uses web UI")
+    Rel(webapp, database, "Reads and writes user and work order data")
+    Rel(webapp, scheduler, "Schedules notification jobs")
+    Rel(scheduler, notification, "Triggers Telegram status reports")
+    Rel(notification, telegram, "Sends alerts and status messages")
+    Rel(scheduler, filesystem, "Reads and writes lock files")
+    Rel(webapp, filesystem, "Reads lock file state")

@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor':'#fb923c','secondaryColor':'#818cf8','tertiaryColor':'#4ade80','lineColor':'#334155'}}}%%
+C4Component
+    title Infinx Andon System - Code Diagram
+
+    System_Ext(database, "SQLite Database", "Stores users, machines, posts, interruptions, devices, substations, and history.")
+    System_Ext(telegram, "Telegram API", "Sends alert and status messages to the Infinx group chat.")
+    System_Ext(filesystem, "Local Filesystem", "Stores lock files used by the scheduled report task.")
+
+    Container(webapp, "Flask Web App", "Python / Flask", "Main application container for web routes, validation, persistence, and notifications.")
+
+    Container_Boundary(code, "Flask Web App Code") {
+        Component(startup, "app/__init__.py", "Application startup", "Creates Flask app, configures SQLAlchemy, scheduler, and route blueprints.")
+        Component(extensions, "app/extensions.py", "ORM configuration", "Defines SQLAlchemy Base, DB instance, and metadata naming conventions.")
+        Component(models, "app/models.py", "SQLAlchemy models", "Defines Users, Machines, Posts, Devices, Substations, ErrorCauses, and relationships.")
+        Component(schemas, "app/schemas.py", "Pydantic schemas", "Validates signup and work order form payloads.")
+        Component(base_routes, "app/routes/base.py", "Dashboard routes", "Renders home dashboard and provides active post counts via AJAX.")
+        Component(auth_routes, "app/routes/auth.py", "Auth routes", "Handles user signup and access validation.")
+        Component(post_routes, "app/routes/post.py", "Work order routes", "Manages request creation, closure, reassignment, deletion, history, and export.")
+        Component(data_routes, "app/routes/data.py", "Metrics routes", "Generates downtime and performance analytics for the UI.")
+        Component(notification, "app/telegram_bot.py", "Telegram service", "Sends messages to Telegram using the bot API.")
+        Component(background, "app/background_tasks.py", "Background reports", "Schedules hourly status reports and uses lock files to avoid duplicate notifications.")
+    }
+
+    Rel(startup, extensions, "Configures DB and ORM")
+    Rel(startup, models, "Imports models for DB metadata")
+    Rel(startup, base_routes, "Registers base routes")
+    Rel(startup, auth_routes, "Registers auth routes")
+    Rel(startup, post_routes, "Registers work order routes")
+    Rel(startup, data_routes, "Registers metrics routes")
+    Rel(startup, background, "Starts scheduler and jobs")
+
+    Rel(auth_routes, schemas, "Validates signup payload")
+    Rel(post_routes, schemas, "Validates work order payload")
+    Rel(post_routes, models, "Reads/writes work orders, users, machines, and lookups")
+    Rel(data_routes, models, "Reads machine downtime and incident data")
+    Rel(base_routes, models, "Reads active post status")
+    Rel(auth_routes, models, "Reads/writes user records")
+
+    Rel(post_routes, notification, "Triggers Telegram alerts for order events")
+    Rel(background, notification, "Triggers scheduled Telegram status reports")
+    Rel(notification, telegram, "Sends bot messages")
+
+    Rel(background, filesystem, "Reads and writes lock file")
+    Rel(post_routes, notification, "Spawns notification thread")
+
+    Rel(models, database, "Maps entities to SQLite tables")
+    Rel(post_routes, database, "Persists and queries work order data")
+    Rel(data_routes, database, "Reads analytics data")
+    Rel(background, database, "Reads active posts and machines")
