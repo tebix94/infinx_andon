@@ -117,6 +117,7 @@ class Posts(db.Model):
 
     start_date: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     end_date: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    duration: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     description: Mapped[str] = mapped_column(Text, nullable=True)
     resolution_comment: Mapped[str] = mapped_column(Text, nullable=True)
     

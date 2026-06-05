@@ -182,6 +182,7 @@ def close(post_id):
             post.error_cause_id = request.form.get('error_cause_id')
             post.resolution_comment = request.form.get('resolution_comment')
             post.end_date = datetime.now()
+            post.duration = post.end_date - post.start_date
 
             assigned_user = Users.query.filter_by(employee_number=employee_number).first()
 
@@ -197,6 +198,7 @@ def close(post_id):
                     message = (
                         f'✅ <b>Orden de trabajo #{post.id} ha sido CERRADA</b> ✅\n'
                         f'Máquina: {html.escape(post.machine.name)}\n'
+                        f'Tiempo detenido: {int(post.duration.total_seconds() / 60)} minutos'
                         f'Cerrado por: [{post.user_assigned.employee_number[1:-1]}] {post.user_assigned.first_name} {post.user_assigned.last_name}\n'
                         f'Fecha y hora de cierre: {post.end_date.strftime("%Y-%m-%d %H:%M:%S")}\n'
                         f'Comentario de cierre: {html.escape(post.resolution_comment[:50])}...' # Truncate if too long
