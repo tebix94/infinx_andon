@@ -149,7 +149,7 @@
 <script>
     let machinesChart, typesChart;
 
-    // Función para actualizar la URL sin recargar
+    // Función para actualizar URL y datos
     function actualizarURL(fecha, turno) {
         const url = new URL(window.location);
         url.searchParams.set('date', fecha);
@@ -157,37 +157,6 @@
         window.history.replaceState({}, '', url);
     }
 
-    // Dentro de tu lógica de botones
-    shiftButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-            // ... (tu lógica existente de clases activa) ...
-            
-            const fecha = document.getElementById('metric-date-picker').value;
-            const turno = this.getAttribute('data-shift');
-            
-            actualizarURL(fecha, turno); // <--- Nueva línea
-            actualizarDatos();
-        });
-    });
-
-    // NUEVO: Lógica para leer la URL al cargar la página
-    document.addEventListener("DOMContentLoaded", () => {
-        const params = new URLSearchParams(window.location.search);
-        
-        // Leer fecha y turno de la URL
-        const fechaURL = params.get('date');
-        const shiftURL = params.get('shift') || 'day';
-
-        if (fechaURL) document.getElementById('metric-date-picker').value = fechaURL;
-        
-        // Activar el botón correcto
-        const btn = document.querySelector(`[data-shift="${shiftURL}"]`);
-        if (btn) btn.click(); 
-
-        // ... el resto de tu inicialización ...
-    });
-
-    // Función principal de actualización
     async function actualizarDatos() {
         const fecha = document.getElementById('metric-date-picker').value;
         const btnActivo = document.querySelector('#filter-shift-group button.active');
@@ -195,52 +164,37 @@
 
         try {
             const response = await fetch(`/metrics?date=${fecha}&shift=${turno}&format=json`);
-            if (!response.ok) throw new Error('Error en la respuesta del servidor');
-            
             const data = await response.json();
 
-            // Actualizar elementos visuales
+            // 1. Actualizar tarjetas
             document.getElementById('card-total-minutes').innerHTML = `${data.total_minutes} <span class="fs-6 fw-normal text-muted">minutos</span>`;
             document.getElementById('card-total-incidents').innerHTML = `${data.total_incidents} <span class="fs-6 fw-normal text-muted">eventos</span>`;
             document.getElementById('card-top-downtime').textContent = data.top_downtime_machine || 'N/A';
 
-            // Actualizar Tabla
+            // 2. Actualizar Tabla
             const tbody = document.getElementById('table-events');
-            const urlBase = "{{ url_for('post.history') }}";
-            
             if (data.total_incidents > 0) {
                 tbody.innerHTML = data.machine_names.map((name, i) => {
-                    // Obtenemos la fecha directamente del JSON que viene de Flask
+                    if (data.machine_incidents[i] === 0) return '';
+                    
                     let rawDate = data.machine_incidents_startdate[i];
-
-                    // FUERZA LA LIMPIEZA AQUÍ:
-                    // Si detectamos que es el formato largo, lo formateamos a la fuerza
                     if (typeof rawDate === 'string' && rawDate.includes('GMT')) {
                         rawDate = new Date(rawDate).toISOString().split('T')[0];
                     }
-
-                    const params = { id: i + 1 };
-                    if (rawDate && rawDate !== "0" && rawDate !== 0) {
-                        params.start_date = rawDate;
-                    }
-
-                    const url = `${urlBase}?${new URLSearchParams(params).toString()}`;
-
-                    if (data.machine_incidents[i] > 0) {
-                        return `<tr>
-                            <td class="ps-4 fw-semibold text-dark"><a href="${url}">${name}</a></td>
-                            <td class="text-center">${data.machine_data[i]} minutos</td>
-                            <td class="text-center"><span class="badge bg-secondary rounded-pill">${data.machine_incidents[i]}</span></td>
-                            <td class="text-center">${data.machine_fault_status[i] ? '🔴<em>Detenido</em>' : '🟢<em>Corriendo</em>'}</td>
-                        </tr>`;
-                    }
-                    return '';
+                    const url = `{{ url_for('post.history') }}?id=${i + 1}&start_date=${rawDate}`;
+                    
+                    return `<tr>
+                        <td class="ps-4 fw-semibold text-dark"><a href="${url}">${name}</a></td>
+                        <td class="text-center">${data.machine_data[i]} minutos</td>
+                        <td class="text-center"><span class="badge bg-secondary rounded-pill">${data.machine_incidents[i]}</span></td>
+                        <td class="text-center">${data.machine_fault_status[i] ? '🔴<em>Detenido</em>' : '🟢<em>Corriendo</em>'}</td>
+                    </tr>`;
                 }).join('');
             } else {
-                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-muted"><i class="bi bi-info-circle me-2"></i>No hay información.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-muted">No hay información.</td></tr>`;
             }
 
-            // Actualizar Gráficas
+            // 3. Actualizar Gráficas
             if (machinesChart) {
                 machinesChart.data.datasets[0].data = data.machine_data;
                 machinesChart.update();
@@ -255,12 +209,16 @@
     }
 
     document.addEventListener("DOMContentLoaded", () => {
-        // 1. Inicializar fecha
+        // Inicializar Fecha
         const datePicker = document.getElementById('metric-date-picker');
         if (!datePicker.value) datePicker.value = new Date().toISOString().split('T')[0];
-        datePicker.addEventListener('change', actualizarDatos);
+        datePicker.addEventListener('change', () => {
+            const turno = document.querySelector('#filter-shift-group button.active').getAttribute('data-shift');
+            actualizarURL(datePicker.value, turno);
+            actualizarDatos();
+        });
 
-        // 2. Inicializar gráficas (Chart.js)
+        // Inicializar Gráficas
         machinesChart = new Chart(document.getElementById('machinesChart').getContext('2d'), {
             type: 'bar',
             data: { labels: {{ machine_names | tojson | safe }}, datasets: [{ data: {{ machine_data | tojson | safe }}, backgroundColor: '#0d6efd', borderRadius: 4 }] },
@@ -273,20 +231,26 @@
             options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
         });
 
-        // 3. Lógica de botones
+        // Configurar Botones
         const shiftButtons = document.querySelectorAll('#filter-shift-group button');
         shiftButtons.forEach(btn => {
             btn.addEventListener('click', function() {
                 shiftButtons.forEach(b => b.classList.remove('active', 'btn-primary', 'text-white') || b.classList.add('btn-light'));
                 this.classList.add('active', 'btn-primary', 'text-white');
                 this.classList.remove('btn-light');
+                
+                actualizarURL(datePicker.value, this.getAttribute('data-shift'));
                 actualizarDatos();
             });
         });
 
-        // 4. Disparo inicial y refresco (cambiado a 10s para mejor performance)
-        document.querySelector('[data-shift="day"]').classList.add('active', 'btn-primary', 'text-white');
-        setInterval(actualizarDatos, 4000); 
+        // Carga inicial basada en URL o default
+        const params = new URLSearchParams(window.location.search);
+        const shiftURL = params.get('shift') || 'day';
+        const btnDefault = document.querySelector(`[data-shift="${shiftURL}"]`);
+        if (btnDefault) btnDefault.click();
+
+        setInterval(actualizarDatos, 4000);
     });
 </script>
 {% endblock %}
