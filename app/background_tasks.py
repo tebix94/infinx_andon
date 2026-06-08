@@ -1,26 +1,17 @@
 import os
-import fcntl
+from filelock import FileLock, Timeout
 from app.models import Machines, Posts
 from app.telegram_bot import send_telegram_notification 
 from datetime import datetime
 from collections import defaultdict
 from sqlalchemy import or_
 
-def run_background_tasks(scheduler):
-    def background_task_telegram_status_report():
-        #Use a file lock to ensure only one instance runs
-        lock_file = '/tmp/infinx_telegram.lock'
-        fd = os.open(lock_file, os.O_CREAT | os.O_RDWR)
-        
-        try:
-            # Try to lock. If another process has it, this fails immediately.
-            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except (IOError, BlockingIOError):
-            # Task is already running elsewhere, exit silently
-            os.close(fd)
-            return
-        
-        try:
+def background_task_telegram_short_status_report(scheduler, only_downtime=False):
+    # Cross-platform lock (works in Linux/WSL and Windows)
+    lock = FileLock("infinx_telegram.lock")
+    
+    try:
+        with lock.acquire(timeout=0):  # Non-blocking lock
             # Fetch environment variables
             token = os.environ.get('TELEGRAM_BOT_TOKEN')
             chat_id = os.environ.get('TELEGRAM_INFINX_GROUP_ID')
@@ -33,6 +24,10 @@ def run_background_tasks(scheduler):
 
                 for post in Posts.query.filter(or_(Posts.end_date.is_(None), Posts.start_date >= current_date)).all():
                     posts_map[post.machine_id].append(post)
+
+                # Skip if no posts
+                if not posts_map:
+                    return
                 
                 for machine in machines:
                     # Get the list of posts for this machine
@@ -47,6 +42,9 @@ def run_background_tasks(scheduler):
                         else:
                             total_downtime += int((datetime.now() - post.start_date).total_seconds() / 60)
 
+                    if only_downtime and total_downtime == 0:
+                        continue
+
                     if not active_post:
                         message += f'<b>{machine.name}</b> corriendo ✅\nHoy ha parado {total_downtime} minutos.\n\n'
                     else: 
@@ -55,14 +53,15 @@ def run_background_tasks(scheduler):
                         message += f'<b>{machine.name}</b> detenido por [{faults}] 🛑\nHoy ha parado {total_downtime} minutos.\n\n'
                 
                 send_telegram_notification(token, chat_id, message)
-        finally:
-            # Always release the lock
-            fcntl.flock(fd, fcntl.LOCK_UN)
-            os.close(fd)
+    except Timeout:
+        # Task is already running elsewhere, exit silently
+        return
 
+def run_background_tasks(scheduler):
     scheduler.add_job(
         id='telegram_update_report',
-        func=background_task_telegram_status_report,
+        func=background_task_telegram_short_status_report,
+        args=[scheduler, True],
         trigger='cron',
         hour='*',
         minute=0,
