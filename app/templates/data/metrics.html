@@ -149,6 +149,44 @@
 <script>
     let machinesChart, typesChart;
 
+    // Función para actualizar la URL sin recargar
+    function actualizarURL(fecha, turno) {
+        const url = new URL(window.location);
+        url.searchParams.set('date', fecha);
+        url.searchParams.set('shift', turno);
+        window.history.replaceState({}, '', url);
+    }
+
+    // Dentro de tu lógica de botones
+    shiftButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            // ... (tu lógica existente de clases activa) ...
+            
+            const fecha = document.getElementById('metric-date-picker').value;
+            const turno = this.getAttribute('data-shift');
+            
+            actualizarURL(fecha, turno); // <--- Nueva línea
+            actualizarDatos();
+        });
+    });
+
+    // NUEVO: Lógica para leer la URL al cargar la página
+    document.addEventListener("DOMContentLoaded", () => {
+        const params = new URLSearchParams(window.location.search);
+        
+        // Leer fecha y turno de la URL
+        const fechaURL = params.get('date');
+        const shiftURL = params.get('shift') || 'day';
+
+        if (fechaURL) document.getElementById('metric-date-picker').value = fechaURL;
+        
+        // Activar el botón correcto
+        const btn = document.querySelector(`[data-shift="${shiftURL}"]`);
+        if (btn) btn.click(); 
+
+        // ... el resto de tu inicialización ...
+    });
+
     // Función principal de actualización
     async function actualizarDatos() {
         const fecha = document.getElementById('metric-date-picker').value;
