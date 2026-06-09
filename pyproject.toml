@@ -12,6 +12,7 @@ dependencies = [
     "flask-apscheduler>=1.13.1",
     "flask-login>=0.6.3",
     "flask-sqlalchemy>=3.1.1",
+    "matplotlib>=3.10.9",
     "openpyxl>=3.1.5",
     "pandas>=3.0.3",
     "pydantic>=2.13.4",
