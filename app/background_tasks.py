@@ -245,9 +245,9 @@ def run_background_tasks(scheduler):
         id='telegram_update_graph_report',
         func=background_task_telegram_graph_report,
         args=[scheduler,],
-        trigger='interval',
-        #hour='*',
-        #minute=0,
-        seconds=5,
+        trigger='cron',
+        hour='*',
+        minute=0,
+        second=0,
         replace_existing=True # Prevents duplicate errors on reload
     )
