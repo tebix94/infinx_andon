@@ -1,7 +1,7 @@
 import requests
 import os
 
-def send_telegram_notification(token, chat_id, message, image_path):
+def send_telegram_notification(token, chat_id, message, image_path=None):
 
     if image_path:
         url = f'https://api.telegram.org/bot{token}/sendPhoto'
@@ -32,7 +32,7 @@ def send_telegram_notification(token, chat_id, message, image_path):
             # This will run regardless of whether the request succeeded or failed
             if os.path.exists(image_path):
                 os.remove(image_path)
-                print("Temporary image file deleted.")
+                print(f'Temporary image {image_path} file deleted.')
     else:
         try:
          # Send the request
