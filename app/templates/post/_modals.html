@@ -59,38 +59,41 @@
                                         placeholder="Escanea tu credencia" 
                                         required>
                             </div>
-                        </div>
-
+                        </div>   
+                        
                         <hr class="text-muted opacity-25 my-3">
 
-                        <div class="mb-2">
-                            <label class="form-label small text-muted fw-semibold mb-1">Subestación</label>
-                            <select class="form-select form-select-sm substation-select" name="substation_id" required>
-                                <option value="" disabled selected>-- Selecciona una subestación --</option>
-                                {% for substation in substations %}
-                                    <option value="{{ substation.id }}" data-substation-machine-id="{{ substation.machine_id|default('', true) }}">
-                                        {{ substation.name }}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                        {% if post.interruption_id == 1 %}
+                            <div class="mb-2">
+                                <label class="form-label small text-muted fw-semibold mb-1">Subestación</label>
+                                <select class="form-select form-select-sm substation-select" name="substation_id" required>
+                                    <option value="" disabled selected>-- Selecciona una subestación --</option>
+                                    {% for substation in substations %}
+                                        <option value="{{ substation.id }}" data-substation-machine-id="{{ substation.machine_id|default('', true) }}">
+                                            {{ substation.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
 
-                        <div class="mb-2">
-                            <label class="form-label small text-muted fw-semibold mb-1">Dispositivo / Componente</label>
-                            <select class="form-select form-select-sm device-select" name="device_id" disabled required>
-                                <option value="" disabled selected>-- Selecciona una subestación primero --</option>
-                            </select>
-                        </div>
+                            <div class="mb-2">
+                                <label class="form-label small text-muted fw-semibold mb-1">Dispositivo / Componente</label>
+                                <select class="form-select form-select-sm device-select" name="device_id" disabled required>
+                                    <option value="" disabled selected>-- Selecciona una subestación primero --</option>
+                                </select>
+                            </div>
 
-                        <div class="mb-1">
-                            <label class="form-label small text-muted fw-semibold mb-1">Causa de falla raíz</label>
-                            <select class="form-select form-select-sm" name="error_cause_id" required>
-                                <option value="" disabled selected>-- Selecciona la causa raíz --</option>
-                                {% for cause in error_causes %}
-                                    <option value="{{ cause.id }}">{{ cause.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                            <div class="mb-1">
+                                <label class="form-label small text-muted fw-semibold mb-1">Causa de falla raíz</label>
+                                <select class="form-select form-select-sm" name="error_cause_id" required>
+                                    <option value="" disabled selected>-- Selecciona la causa raíz --</option>
+                                    {% for cause in error_causes %}
+                                        <option value="{{ cause.id }}">{{ cause.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        {% endif %}
                     </div>
 
                     <div class="mb-3 text-start">
