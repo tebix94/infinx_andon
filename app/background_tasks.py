@@ -58,10 +58,12 @@ def background_task_telegram_report(scheduler):
                     else:
                         downtime = int((post.end_date - post.start_date).total_seconds() / 60)
 
-                    m_name = post.machine.name
-                    if post.interruption_id not in machine_downtime[m_name]:
-                        machine_downtime[m_name][post.interruption_id] = 0
-                    machine_downtime[m_name][post.interruption_id] += downtime
+                    if post.interruption_id not in machine_downtime[post.machine.name]:
+                        machine_downtime[post.machine.name][post.interruption_id] = 0
+                    machine_downtime[post.machine.name][post.interruption_id] += downtime
+                    if post.machine.name not in machine_events:
+                        machine_events[post.machine.name] = 0
+                    machine_events[post.machine.name] += 1  
 
                     # If at least a post was openned, mark the following flag
                     at_least_one_machine_failed_onshift = True
@@ -176,10 +178,12 @@ def background_task_telegram_report(scheduler):
                     plt.close()
                     print(f'plot has been created at {temp_path}')
 
-                    send_telegram_notification(token=token, chat_id=chat_id, message=message, image_path=temp_path)
+                    send_telegram_notification(token=token,
+                                               chat_id=chat_id,
+                                               message=f'📋 <b>Reporte de equipos ({shift_string})</b> 📋\n\n',
+                                               image_path=temp_path)
                 else:
-                    message = f'Sin fallas que reportar en {shift_string}.'
-                    send_telegram_notification(token=token, chat_id=chat_id, message=message)
+                    send_telegram_notification(token=token, chat_id=chat_id, message=f'Sin fallas que reportar en {shift_string}.')
 
     except Timeout:
         return
@@ -192,6 +196,6 @@ def run_background_tasks(scheduler):
         trigger='cron',
         hour='*',
         minute=0,
-        second=5,
+        second=0,
         replace_existing=True # Prevents duplicate errors on reload
     )
