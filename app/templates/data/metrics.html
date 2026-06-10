@@ -78,7 +78,7 @@
         <div class="col-xl-4">
             <div class="card shadow-sm border-0 rounded-3 h-100">
                 <div class="card-header bg-white border-0 pt-3 pb-0">
-                    <h6 class="fw-bold text-dark mb-0"><i class="bi bi-pie-chart-fill text-success me-2"></i>Distribución por equipo</h6>
+                    <h6 class="fw-bold text-dark mb-0"><i class="bi bi-pie-chart-fill text-success me-2"></i>Distribución de tiempos en reparación</h6>
                 </div>
                 <div class="card-body d-flex align-items-center justify-content-center p-4">
                     <canvas id="typesChart" style="max-height: 260px;"></canvas>
@@ -100,7 +100,8 @@
                         <thead class="table-light">
                             <tr>
                                 <th class="ps-4">Nombre del equipo</th>
-                                <th class="text-center">Tiempo total</th>
+                                <th class="text-center">Tiempo en reparación</th>
+                                <th class="text-center">Tiempo en cambio de modelo</th>
                                 <th class="text-center">Incidencias totales</th>
                                 <th class="text-center">Estado actual</th>
                             </tr>
@@ -112,7 +113,8 @@
                                         {% set url_args = {'id': i + 1, 'start_date': machine_incidents_startdate[i]} %}
                                         <tr>
                                             <td class="ps-4 fw-semibold text-dark"><a href="{{ url_for('post.history', **url_args) }}">{{ machine_names[i] }}</a></td>
-                                            <td class="text-center" id="table-machine-data-row">{{ machine_data[i] }} minutos</td>
+                                            <td class="text-center" id="table-machine-data-row">{{ machine_data[i + 1][1] }} minutos</td>
+                                            <td class="text-center" id="table-machine-data-row">{{ machine_data[i + 1][2] }} minutos</td>
                                             <td class="text-center">
                                                 <span class="badge bg-secondary rounded-pill"> {{ machine_incidents[i] }} </span>
                                             </td>
@@ -185,7 +187,8 @@
                     
                     return `<tr>
                         <td class="ps-4 fw-semibold text-dark"><a href="${url}">${name}</a></td>
-                        <td class="text-center">${data.machine_data[i]} minutos</td>
+                        <td class="text-center">${data.machine_data[i + 1][1] ?? 0} minutos</td>
+                        <td class="text-center">${data.machine_data[i + 1][2] ?? 0} minutos</td>
                         <td class="text-center"><span class="badge bg-secondary rounded-pill">${data.machine_incidents[i]}</span></td>
                         <td class="text-center">${data.machine_fault_status[i] ? '🔴<em>Detenido</em>' : '🟢<em>Corriendo</em>'}</td>
                     </tr>`;
@@ -196,7 +199,24 @@
 
             // 3. Actualizar Gráficas
             if (machinesChart) {
-                machinesChart.data.datasets[0].data = data.machine_data;
+                // Creamos arreglos para los nuevos datos
+                const datosReparacion = [];
+                const datosCambioModelo = [];
+
+                // Suponiendo que data.machine_names es la lista base de máquinas
+                data.machine_names.forEach((_, i) => {
+                    // Obtenemos el ID de la máquina (ajusta esto si tus IDs no son i+1)
+                    const id = i + 1;
+                    
+                    // Extraemos los valores de forma segura (usando ?? 0 para evitar errores)
+                    datosReparacion.push(data.machine_data[id]?.[1] ?? 0);
+                    datosCambioModelo.push(data.machine_data[id]?.[2] ?? 0);
+                });
+
+                // Asignamos los arreglos preparados a los datasets
+                machinesChart.data.datasets[0].data = datosReparacion;
+                machinesChart.data.datasets[1].data = datosCambioModelo;
+                
                 machinesChart.update();
             }
             if (typesChart) {
@@ -221,8 +241,29 @@
         // Inicializar Gráficas
         machinesChart = new Chart(document.getElementById('machinesChart').getContext('2d'), {
             type: 'bar',
-            data: { labels: {{ machine_names | tojson | safe }}, datasets: [{ data: {{ machine_data | tojson | safe }}, backgroundColor: '#0d6efd', borderRadius: 4 }] },
-            options: { responsive: true, plugins: { legend: { display: false } } }
+            data: {
+                labels: {{ machine_names | tojson | safe }},
+                datasets: [
+                    {
+                        label: 'Reparación',
+                        data: Object.values({{ machine_data[1] | tojson | safe }}),
+                        backgroundColor: '#0d6efd' // Color para tipo 1
+                    },
+                    {
+                        label: 'Cambio de modelo',
+                        data: Object.values({{ machine_data[2] | tojson | safe }}),
+                        backgroundColor: '#ffc107' // Color para tipo 2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { stacked: true }, // Apilar eje X
+                    y: { stacked: true }  // Apilar eje Y
+                },
+                plugins: { legend: { display: true } } // Opcional: mostrar leyenda
+            }
         });
 
         typesChart = new Chart(document.getElementById('typesChart').getContext('2d'), {

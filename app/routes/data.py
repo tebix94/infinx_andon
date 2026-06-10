@@ -4,6 +4,7 @@ from app.models import Posts, Machines
 from datetime import datetime, timedelta
 from app.extensions import db
 import calendar
+from collections import defaultdict
 
 bp = Blueprint('data', __name__)
 
@@ -65,7 +66,7 @@ def metrics():
                                        Posts.end_date == None)).order_by(Posts.start_date).all()
 
     # Lists and variables for calculating invidivual posts downtime values
-    machine_downtimes = [0] * len(machines)
+    machine_downtimes = defaultdict(dict)
     machine_incidents = [0] * len(machines)
     machines_incidents_startdate = [0] * len(machines)
     machine_fault_status = [False] * len(machines)
@@ -100,8 +101,10 @@ def metrics():
         if downtime_minutes < 0:
             downtime_minutes = 0
 
-        if post.machine_id is not None and 0 < post.machine_id <= len(machine_downtimes):
-            machine_downtimes[idx] += downtime_minutes
+        if post.machine_id is not None:
+            if post.interruption_id not in machine_downtimes[post.machine_id]:
+                machine_downtimes[post.machine_id][post.interruption_id] = 0
+            machine_downtimes[post.machine_id][post.interruption_id] += downtime_minutes
             machine_incidents[idx] += 1
 
         # Start accumulating the downtime of the whole post
@@ -123,14 +126,15 @@ def metrics():
                 last_end_time = line_end
 
     # Set data for the pie chart
-    pie_labels = [machine_names[i] for i in range(len(machine_downtimes)) if machine_downtimes[i] > 0]
-    pie_data = [time for time in machine_downtimes if time > 0]
+    pie_labels = [machine_names[i - 1] for i in machine_downtimes if isinstance(machine_downtimes[i], dict) and machine_downtimes[i].get(1, 0) > 0]
+    pie_data = [inner_dict[1] for inner_dict in machine_downtimes.values() if 1 in inner_dict and inner_dict[1] > 0]
+    print(machine_downtimes)
 
     # Get top downtime machine name
     for i in range(len(machine_downtimes)):
-        if machine_downtimes[i] > top_downtime:
-            top_downtime = machine_downtimes[i]
-            top_downtime_machine = machine_names[i]
+        if isinstance(machine_downtimes[i], dict) and machine_downtimes[i].get(1, 0) > top_downtime:
+            top_downtime = machine_downtimes[i][1]
+            top_downtime_machine = machine_names[i - 1]
 
     # If no data for the pie chart, lets set defaults
     if not pie_data:
