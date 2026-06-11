@@ -178,15 +178,8 @@ sudo systemctl restart nginx
 # 5 Setup Gunicorn
 
 ## Installation
-
-Install from project root:
 ~~~
 uv add gunicorn
-~~~
-
-Tell Gunicorn where is your app instance (defaults looks for a app.py file):
-~~~
-uv run gunicorn "app:start_app()"
 ~~~
 
 ## Setup service
