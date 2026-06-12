@@ -125,10 +125,6 @@ def metrics():
                 total_downtime += int((line_end - last_end_time).total_seconds() / 60)
                 last_end_time = line_end
 
-    # Set data for the pie chart
-    pie_labels = [machine_names[i - 1] for i in machine_downtimes if isinstance(machine_downtimes[i], dict) and machine_downtimes[i].get(1, 0) > 0]
-    pie_data = [inner_dict[1] for inner_dict in machine_downtimes.values() if 1 in inner_dict and inner_dict[1] > 0]
-
     # Get top downtime machine name
     for i in range(len(machine_names)):
         idx = i + 1
@@ -136,10 +132,19 @@ def metrics():
             top_downtime = machine_downtimes[idx].get(1, 0) + machine_downtimes[idx].get(2, 0)
             top_downtime_machine = machine_names[i]
 
+    # Set data for the pie chart
+    print(machine_downtimes)
+    pie_labels = [machine_names[i - 1] for i in machine_downtimes if isinstance(machine_downtimes[i], dict) and machine_downtimes[i].get(1, 0) + machine_downtimes[i].get(2, 0) > 0]
+    pie_data = [machine_downtimes[i].get(1, 0) + machine_downtimes[i].get(2, 0) for i in machine_downtimes if isinstance(machine_downtimes[i], dict) and machine_downtimes[i].get(1, 0) + machine_downtimes[i].get(2, 0) > 0]
+
     # If no data for the pie chart, lets set defaults
     if not pie_data:
         pie_labels = ["Sin incidentes"]
         pie_data = [0]
+
+    # Merge pie labels and data in a single structure (to avoid front end to change items order during render)
+    pie_items = [{"label": l, "value": v} for l, v in zip(pie_labels, pie_data)]
+    pie_items.sort(key=lambda x: x["value"], reverse=True)
         
     # Render data for client request by JS (Ajax)
     if request.args.get('format') == 'json':
@@ -152,8 +157,7 @@ def metrics():
             'machine_incidents': machine_incidents,
             'machine_incidents_startdate': machines_incidents_startdate, 
             'machine_fault_status': machine_fault_status,
-            'pie_labels': pie_labels,
-            'pie_data': pie_data,
+            'pie_items': pie_items,
             }
         )
 
@@ -168,8 +172,7 @@ def metrics():
         machine_incidents=machine_incidents,
         machine_incidents_startdate=machines_incidents_startdate,
         machine_fault_status=machine_fault_status,
-        pie_labels=pie_labels,
-        pie_data=pie_data,
+        pie_items=pie_items,
     )
 
 @bp.route('/performance')
