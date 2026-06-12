@@ -67,8 +67,10 @@ function populateDevices(deviceSelect, filteredDevices) {
 
 // 4. Lógica de actualización asíncrona
 async function refreshRequests() {
-    // 1. Bloqueo de seguridad
+    // Pausar si hay un modal abierto
     if (document.body.classList.contains('modal-open')) return;
+    // Pausar si hay una tarjeta en modo edición activa
+    if (document.querySelector('.dynamic-edit-zone')) return;
 
     try {
         const controller = new AbortController();
