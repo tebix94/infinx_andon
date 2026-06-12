@@ -128,20 +128,18 @@ def metrics():
     # Set data for the pie chart
     pie_labels = [machine_names[i - 1] for i in machine_downtimes if isinstance(machine_downtimes[i], dict) and machine_downtimes[i].get(1, 0) > 0]
     pie_data = [inner_dict[1] for inner_dict in machine_downtimes.values() if 1 in inner_dict and inner_dict[1] > 0]
-    print(machine_downtimes)
 
     # Get top downtime machine name
-    for i in range(len(machine_downtimes)):
-        if isinstance(machine_downtimes[i], dict) and machine_downtimes[i].get(1, 0) > top_downtime:
-            top_downtime = machine_downtimes[i][1]
-            top_downtime_machine = machine_names[i - 1]
+    for i in range(len(machine_names)):
+        idx = i + 1
+        if isinstance(machine_downtimes[idx], dict) and (machine_downtimes[idx].get(1, 0) + machine_downtimes[idx].get(2, 0)) > top_downtime:
+            top_downtime = machine_downtimes[idx].get(1, 0) + machine_downtimes[idx].get(2, 0)
+            top_downtime_machine = machine_names[i]
 
     # If no data for the pie chart, lets set defaults
     if not pie_data:
         pie_labels = ["Sin incidentes"]
         pie_data = [0]
-
-    print(machines_incidents_startdate)
         
     # Render data for client request by JS (Ajax)
     if request.args.get('format') == 'json':

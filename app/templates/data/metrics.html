@@ -171,7 +171,7 @@
             // 1. Actualizar tarjetas
             document.getElementById('card-total-minutes').innerHTML = `${data.total_minutes} <span class="fs-6 fw-normal text-muted">minutos</span>`;
             document.getElementById('card-total-incidents').innerHTML = `${data.total_incidents} <span class="fs-6 fw-normal text-muted">eventos</span>`;
-            document.getElementById('card-top-downtime').textContent = data.top_downtime_machine || 'N/A';
+            document.getElementById('card-top-downtime').textContent = data.top_downtime_machine || 'Sin datos';
 
             // 2. Actualizar Tabla
             const tbody = document.getElementById('table-events');
