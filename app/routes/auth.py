@@ -41,7 +41,7 @@ def login():
         # At this point user level is valid
         login_user(user)
         next_url = session.pop('next', None)
-        return redirect(next_url or url_for('home'))
+        return redirect(next_url or url_for('post.requests'))
     if request.method == 'GET':
         session['next'] = request.referrer # Store the url the user was before navigating to /login/
         return render_template('register/login.html')
