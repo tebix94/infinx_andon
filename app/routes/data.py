@@ -133,7 +133,6 @@ def metrics():
             top_downtime_machine = machine_names[i]
 
     # Set data for the pie chart
-    print(machine_downtimes)
     pie_labels = [machine_names[i - 1] for i in machine_downtimes if isinstance(machine_downtimes[i], dict) and machine_downtimes[i].get(1, 0) + machine_downtimes[i].get(2, 0) > 0]
     pie_data = [machine_downtimes[i].get(1, 0) + machine_downtimes[i].get(2, 0) for i in machine_downtimes if isinstance(machine_downtimes[i], dict) and machine_downtimes[i].get(1, 0) + machine_downtimes[i].get(2, 0) > 0]
 
