@@ -18,6 +18,11 @@
         .badge-blink {
             animation: pulse-blink 1.5s infinite ease-in-out;
         }
+
+        .navbar {
+            padding-top: 0.1rem !important;
+            padding-bottom: 0.1rem !important;
+        }
     </style>
     
 </head>
@@ -53,17 +58,7 @@
                 </ul>
                 
                 <ul class="navbar-nav ms-auto align-items-center"> 
-                    {% if False %}
-                        <li class="nav-item">
-                            <span class="navbar-text me-3 text-light">
-                                ¡Hola, <strong>{{ current_user.first_name }} {{ current_user.last_name }}</strong>!
-                            </span>
-                        </li>
-                        
-                        <li class="nav-item">
-                            <a class="btn btn-danger btn-sm ms-lg-2" href="{{ url_for('auth.logout') }}">Salir</a>
-                        </li>
-                    {% endif %}
+                    <li class="nav-item"><a class="nav-link fs-5" href="{{ url_for('settings.view') }}">⚙️</a></li>
                 </ul>
             </div>
         </div>

@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}Configuración{% endblock %}
+
+{% block content %}
+<style>
+    /* Masonry Layout for Cards */
+    .masonry-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        grid-auto-rows: min-content;
+        gap: 1.5rem;
+    }
+</style>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Configuración de sistema</h2>
+    </div>
+
+    <ul class="nav nav-tabs mb-4" id="settingsTab" role="tablist">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#assets">Activos</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#categories">Tipos de interrupciones y fallas</button></li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- Asset Hierarchy Tab -->
+        <div class="tab-pane fade show active" id="assets">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card shadow-sm">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Equipos registrados</h5>
+                            <a href="/settings/navigate.html?action=add&type=machine" class="btn btn-sm btn-success">+ Agregar</a>
+                        </div>
+                        
+                        <ul class="list-group list-group-flush">
+                            {% for machine in machines %}
+                            <li class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center py-2">
+                                    <span class="fw-bold">{{ machine.name }}</span>
+                                    <div>
+                                        <button class="btn btn-sm btn-outline-secondary me-2" data-bs-toggle="collapse" data-bs-target="#collapseMachine{{ machine.id }}">
+                                            Ver contenido
+                                        </button>
+                                        <a href="/settings/navigate.html?action=add&type=substation" class="btn btn-sm btn-success">+ Agregar</a>
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="openEditModal('machine', {{ machine.id }}, '{{ machine.name }}')">
+                                            ✏️
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="collapse mt-2" id="collapseMachine{{ machine.id }}">
+                                    <div class="card card-body bg-light">
+                                        {% for sub in machine.substations %}
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <span>{{ sub.name }}</span>
+                                                <div>
+                                                    <a href="/settings/navigate.html?action=add&type=substation" class="btn btn-sm btn-success">+ Agregar</a>
+                                                    <button class="btn btn-sm btn-outline-secondary" 
+                                                            onclick="openEditModal('substations', {{ sub.id }}, '{{ sub.name }}')">
+                                                        ✏️
+                                                    </button>
+                                                </div>
+                                                
+                                            </div>
+                                            <ul class="list-unstyled ps-3 mb-1">
+                                                {% for dev in sub.devices %}
+                                                <li class="d-flex justify-content-between align-items-center mb-1">
+                                                    <span class="text-muted">• {{ dev.name }}</span>
+                                                    
+                                                    <button class="btn btn-sm btn-link p-0 ms-2" 
+                                                            onclick="openEditModal('device', {{ dev.id }}, '{{ dev.name }}')">
+                                                        ✏️
+                                                    </button>
+                                                </li>
+                                                {% endfor %}
+                                            </ul>
+                                        {% else %}
+                                        <small class="text-muted">No hay subestaciones registradas.</small>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Categories Tab -->
+        <div class="tab-pane fade" id="categories">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Tipos de interrupciones</h5>
+                            <a href="/settings/navigate.html?action=add&type=interruption" class="btn btn-sm btn-success">+ Agregar</a>
+                        </div>
+                        <ul class="list-group list-group-flush">
+                            {% for item in interruption_types %}
+                            <li class="list-group-item d-flex justify-content-between">
+                                {{ item.name }}
+                                <a href="/settings/navigate.html?action=edit&type=interruption&id={{ item.id }}" class="btn btn-sm btn-link text-decoration-none">Editar</a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Tipo de fallas de equipo</h5>
+                            <a href="/settings/navigate.html?action=add&type=error" class="btn btn-sm btn-success">+ Agregar</a>
+                        </div>
+                        <ul class="list-group list-group-flush">
+                            {% for cause in error_causes %}
+                            <li class="list-group-item d-flex justify-content-between">
+                                {{ cause.name }}
+                                <a href="/settings/navigate.html?action=edit&type=error&id={{ cause.id }}" class="btn btn-sm btn-link text-decoration-none">Editar</a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% include 'settings/_modals.html' %}
+    </div>
+</div>
+
+{% block script %}
+<script>
+function openEditModal(type, id, name) {
+    document.getElementById('editType').value = type;
+    document.getElementById('editId').value = id;
+    document.getElementById('editName').value = name;
+    
+    var myModal = new bootstrap.Modal(document.getElementById('editModal'));
+    myModal.show();
+}
+</script>
+{% endblock script %}
+
+{% endblock %}

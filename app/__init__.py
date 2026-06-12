@@ -17,6 +17,7 @@ from app.routes.base import bp as bp_home
 from app.routes.auth import bp as bp_auth
 from app.routes.post import bp as bp_post
 from app.routes.data import bp as bp_data
+from app.routes.settings import bp as bp_settings
 
 # Load enviroment variables
 load_dotenv()
@@ -46,6 +47,7 @@ def start_app():
     app.register_blueprint(bp_auth, url_prefix='/auth')
     app.register_blueprint(bp_post, url_prefix='/post/')
     app.register_blueprint(bp_data)
+    app.register_blueprint(bp_settings, url_prefix='/settings/')
   
     # Start background tasks
     if not is_running_from_reloader():

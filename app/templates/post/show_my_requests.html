@@ -6,7 +6,7 @@
 
 {% block content %}
 
-<div class="container mt-5">
+<div class="container mt-5" id="requests-container">
     {% if not posts.items %}
         <div class="text-center py-5 my-5">
             <div class="display-1 text-muted mb-3">🤪</div>
@@ -44,7 +44,7 @@
             {{ function.render_pagination(pagination) }}
         </div>
 
-        <div class="row row-cols-1 row-cols-md-2 g-4" id="requests-container">
+        <div class="row row-cols-1 row-cols-md-2 g-4">
             {% for post in posts.items %}
                 {% if not post.end_date %} 
                     {% set is_editing = (request.args.get('edit_id')|int == post.id) %}

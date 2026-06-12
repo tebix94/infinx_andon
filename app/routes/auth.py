@@ -8,7 +8,7 @@ from app.extensions import db
 
 # Data schema validation
 from pydantic import ValidationError
-from app.schemas import UserCreateSchema #,UserLoginSchema 
+from app.schemas import UserCreateSchema#, UserLoginSchema 
 
 bp = Blueprint('auth', __name__)
 
