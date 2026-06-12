@@ -12,7 +12,9 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from collections import defaultdict
+from dotenv import load_dotenv
 
+load_dotenv()
 ENABLE_TELEGRAM = os.environ.get('ENABLE_TELEGRAM')
 
 def background_task_telegram_report(scheduler, enable):
