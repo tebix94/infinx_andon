@@ -21,6 +21,7 @@ from app.routes.settings import bp as bp_settings
 
 # Load enviroment variables
 load_dotenv()
+SECRET_KEY = os.environ.get('SECRET_KEY')
 
 # Load scheduler
 scheduler = APScheduler()
@@ -29,13 +30,11 @@ def start_app():
     # Create backend instance
     app = Flask(__name__, static_folder='static', template_folder='templates')
 
-    # Add secret key
-    app.secret_key = secrets.token_hex()
-
     # Assign database
     basedir = os.path.abspath(os.path.dirname(__file__)) # This is the /app folder
     db_path = os.path.join(os.path.dirname(basedir), 'app.db')
-    app.config["SQLALCHEMY_DATABASE_URI"] = f'sqlite:///{db_path}'
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+    app.config['SECRET_KEY'] = SECRET_KEY
 
     # Connect the app with the extensions
     db.init_app(app=app)
