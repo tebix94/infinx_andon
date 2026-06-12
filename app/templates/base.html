@@ -58,7 +58,18 @@
                 </ul>
                 
                 <ul class="navbar-nav ms-auto align-items-center"> 
-                    <li class="nav-item"><a class="nav-link fs-5" href="{{ url_for('auth.login') }}">⚙️</a></li>
+                    {% if current_user.is_authenticated %}
+                        <li class="nav-item">
+                            <span class="navbar-text me-2">¡Hola, {{ current_user.first_name }} {{ current_user.last_name }}!</span>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('auth.logout') }}" class="btn btn-danger btn-sm">Salir</a>
+                        </li>
+                        <li class="nav-item"><a class="nav-link fs-5" href="{{ url_for('settings.view') }}">⚙️</a></li>
+                    {% else %}
+                        <li><a href="{{ url_for('auth.login') }}" class="btn btn-success btn-sm">Ingresar</a></li>
+                    {% endif %}
+                    
                 </ul>
             </div>
         </div>

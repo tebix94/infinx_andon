@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 # Import objects and methods
 from flask import Flask
-from .extensions import db
+from .extensions import db, login_manager
 from werkzeug.serving import is_running_from_reloader
 
 # Import scheduler and related modules
@@ -40,7 +40,7 @@ def start_app():
     # Connect the app with the extensions
     db.init_app(app=app)
     scheduler.init_app(app=app)
-    #login_manager.init_app(app=app)
+    login_manager.init_app(app=app)
 
     # Add routes
     app.register_blueprint(bp_home)

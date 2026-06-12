@@ -3,7 +3,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from flask_login import UserMixin
 from datetime import datetime, timezone
 from werkzeug.security import generate_password_hash, check_password_hash
-from .extensions import db#, login_manager
+from .extensions import db, login_manager
 
 class Users(UserMixin, db.Model):
     __tablename__ = 'users'
@@ -35,11 +35,10 @@ class Users(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password, password)
     '''
-'''  
+
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(Users, int(user_id))
-'''
 
 class Machines(db.Model):
     __tablename__ = 'machines'

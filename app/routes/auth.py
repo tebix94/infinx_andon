@@ -1,5 +1,5 @@
 # Backend modules
-from flask import Blueprint, url_for, redirect, flash, render_template, request
+from flask import Blueprint, url_for, redirect, flash, render_template, request, session
 from flask_login import login_user, logout_user, login_required, current_user
 
 # SQL data and models
@@ -26,6 +26,10 @@ def login():
 
         user = Users.query.filter_by(employee_number=data.employee_number).first()
 
+        if not user:
+            flash('Número de empleado no encontrado.', 'danger')
+            return redirect(url_for('auth.login'))
+
         if not user.is_staff:
             flash('Usuario no tiene nivel de acceso.', 'danger')
             return redirect(url_for('auth.login'))
@@ -34,19 +38,21 @@ def login():
             login_user(user)
             return redirect(url_for('base.home'))
         '''
-        
-        # At this point everything is ok
-        return redirect(url_for('settings.view'))
-    return render_template('register/login.html')
+        # At this point user level is valid
+        login_user(user)
+        next_url = session.pop('next', None)
+        return redirect(next_url or url_for('home'))
+    if request.method == 'GET':
+        session['next'] = request.referrer # Store the url the user was before navigating to /login/
+        return render_template('register/login.html')
 
-
-'''
 @bp.route('/logout/')
 @login_required
 def logout():
-    logout_user()   
-    return redirect(url_for('base.home'))
-'''
+    logout_user()
+    if request.referrer and request.referrer.endswith(url_for('settings.view')):
+        return redirect(url_for('post.requests'))   
+    return redirect(request.referrer or url_for('post.requests'))
 
 @bp.route('/signup/', methods=['GET', 'POST'])
 def signup():
