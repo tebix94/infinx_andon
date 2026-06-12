@@ -13,7 +13,13 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from collections import defaultdict
 
-def background_task_telegram_report(scheduler):
+ENABLE_TELEGRAM = os.environ.get('ENABLE_TELEGRAM')
+
+def background_task_telegram_report(scheduler, enable):
+    if not enable:
+        print('Telegram messenger service has been disabled from .env file.')
+        return
+
     # Cross-platform lock (works in Linux/WSL and Windows)
     lock = FileLock("infinx_telegram_graph.lock")
 
@@ -187,12 +193,12 @@ def background_task_telegram_report(scheduler):
 
     except Timeout:
         return
-    
+
 def run_background_tasks(scheduler):
     scheduler.add_job(
-        id='telegram_update_graph_report',
+        id='telegram_update_report',
         func=background_task_telegram_report,
-        args=[scheduler,],
+        args=[scheduler, ENABLE_TELEGRAM == 'YES'],
         trigger='cron',
         hour='*',
         minute=0,
