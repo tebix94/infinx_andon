@@ -19,11 +19,10 @@ class UserCreateSchema(BaseModel):
             raise ValueError('passwords do not match')
         return self
     ''' 
-'''
+
 class UserLoginSchema(BaseModel):
-    employee_id: str = Field(min_length=3, max_length=20)
+    employee_number: str = Field(min_length=3, max_length=20)
     #password: str = Field(min_length=8)
-'''
 
 class CreatePostSchema(BaseModel):
     employee_number: str = Field(min_length=4, max_length=10)

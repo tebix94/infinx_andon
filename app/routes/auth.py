@@ -8,11 +8,11 @@ from app.extensions import db
 
 # Data schema validation
 from pydantic import ValidationError
-from app.schemas import UserCreateSchema#, UserLoginSchema 
+from app.schemas import UserCreateSchema, UserLoginSchema 
 
 bp = Blueprint('auth', __name__)
 
-'''
+
 @bp.route('/login/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -20,19 +20,25 @@ def login():
             # Use Pydantic to validate data from backend side
             data = UserLoginSchema(**request.form.to_dict())
         except ValidationError as e:
-            print(e.json()) # <--- THIS WILL TELL YOU EXACTLY WHICH FIELD FAILED IN YOUR TERMINAL
-            flash('Valores incorrectos, favor de usar número de empleado y contraseña.')
+            print(e.json())
+            flash('Valores incorrectos, favor de ingresar un número de empleado válido.', 'warning')
             return redirect(url_for('auth.login'))
 
-        user = Users.query.filter_by(employee_id=data.employee_id).first()
+        user = Users.query.filter_by(employee_number=data.employee_number).first()
 
+        if not user.is_staff:
+            flash('Usuario no tiene nivel de acceso.', 'danger')
+            return redirect(url_for('auth.login'))
+        '''
         if user and user.check_password(data.password):
             login_user(user)
             return redirect(url_for('base.home'))
+        '''
         
-        flash('Número de empleado o contraseña incorrectos.')
+        # At this point everything is ok
+        return redirect(url_for('settings.view'))
     return render_template('register/login.html')
-'''
+
 
 '''
 @bp.route('/logout/')

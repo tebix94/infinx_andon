@@ -44,7 +44,7 @@ def start_app():
 
     # Add routes
     app.register_blueprint(bp_home)
-    app.register_blueprint(bp_auth, url_prefix='/auth')
+    app.register_blueprint(bp_auth, url_prefix='/auth/')
     app.register_blueprint(bp_post, url_prefix='/post/')
     app.register_blueprint(bp_data)
     app.register_blueprint(bp_settings, url_prefix='/settings/')
